@@ -1,8 +1,46 @@
+import { useEffect } from 'react'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useAuthStore } from './stores/authStore'
+
+import AuthLayout from './components/layout/AuthLayout'
+import AppLayout from './components/layout/AppLayout'
+import ProtectedRoute from './components/ProtectedRoute'
+import GuestRoute from './components/GuestRoute'
+
+import LoginPage from './pages/LoginPage'
+import RegisterPage from './pages/RegisterPage'
+import NotesPage from './pages/NotesPage'
+import CoursesPage from './pages/CoursesPage'
+import SearchPage from './pages/SearchPage'
+
 function App() {
+  const initAuth = useAuthStore((s) => s.initAuth)
+
+  useEffect(() => {
+    initAuth()
+  }, [initAuth])
+
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <h1 className="text-2xl font-bold">AI Note Student</h1>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        {/* Auth routes - accessible only when not logged in */}
+        <Route element={<GuestRoute><AuthLayout /></GuestRoute>}>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+        </Route>
+
+        {/* App routes - require authentication */}
+        <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+          <Route path="/notes" element={<NotesPage />} />
+          <Route path="/courses" element={<CoursesPage />} />
+          <Route path="/search" element={<SearchPage />} />
+        </Route>
+
+        {/* Default redirect */}
+        <Route path="/" element={<Navigate to="/notes" replace />} />
+        <Route path="*" element={<Navigate to="/notes" replace />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
