@@ -1,0 +1,14 @@
+server:
+  port: "8080"
+
+database:
+  host: "localhost"    # Docker 环境通过 DB_HOST 环境变量覆盖为 postgres
+  port: "5432"
+  user: "ainote"
+  password: "ainote123"
+  dbname: "ainote"
+  sslmode: "disable"
+
+jwt:
+  secret: "change-me-in-production"
+  expiry_hour: 72
