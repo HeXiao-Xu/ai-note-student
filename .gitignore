@@ -30,3 +30,17 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+.superpowers
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Local env overrides
+*.env.local
+.env
+
+# OS
+.DS_Store
+Thumbs.db
