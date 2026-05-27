@@ -10,6 +10,7 @@ import GuestRoute from './components/GuestRoute'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import NotesPage from './pages/NotesPage'
+import CourseNotesPage from './pages/CourseNotesPage'
 import CoursesPage from './pages/CoursesPage'
 import SearchPage from './pages/SearchPage'
 
@@ -32,6 +33,7 @@ function App() {
         {/* App routes - require authentication */}
         <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
           <Route path="/notes" element={<NotesPage />} />
+          <Route path="/courses/:courseId/notes" element={<CourseNotesPage />} />
           <Route path="/courses" element={<CoursesPage />} />
           <Route path="/search" element={<SearchPage />} />
         </Route>

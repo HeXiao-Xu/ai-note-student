@@ -1,21 +1,28 @@
 import { useEffect, useState, useCallback } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useNoteStore } from '../stores/noteStore'
 import { useCourseStore } from '../stores/courseStore'
 
-export default function NotesPage() {
-  const { notes, currentNote, loading, fetchAllNotes, fetchNote, createNote, updateNote, deleteNote, setCurrentNote } = useNoteStore()
+export default function CourseNotesPage() {
+  const { courseId } = useParams<{ courseId: string }>()
+  const navigate = useNavigate()
+  const { notes, currentNote, loading, fetchNotesByCourse, fetchNote, createNote, updateNote, deleteNote, setCurrentNote } = useNoteStore()
   const { courses } = useCourseStore()
+  const course = courses.find((c) => c.id === Number(courseId))
+
   const [isEditing, setIsEditing] = useState(false)
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [tags, setTags] = useState('')
   const [showNewNote, setShowNewNote] = useState(false)
-  const [newCourseId, setNewCourseId] = useState<number>(0)
   const [saveTimer, setSaveTimer] = useState<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    fetchAllNotes()
-  }, [fetchAllNotes])
+    if (courseId) {
+      fetchNotesByCourse(Number(courseId))
+      setCurrentNote(null)
+    }
+  }, [courseId, fetchNotesByCourse, setCurrentNote])
 
   const handleSelectNote = async (id: number) => {
     await fetchNote(id)
@@ -23,11 +30,6 @@ export default function NotesPage() {
   }
 
   const handleNewNote = () => {
-    if (courses.length === 0) {
-      alert('请先创建课程')
-      return
-    }
-    setNewCourseId(courses[0].id)
     setTitle('')
     setContent('')
     setTags('')
@@ -37,8 +39,8 @@ export default function NotesPage() {
   }
 
   const handleSaveNew = async () => {
-    if (!title.trim()) return
-    const note = await createNote(newCourseId, {
+    if (!title.trim() || !courseId) return
+    const note = await createNote(Number(courseId), {
       title: title.trim(),
       content,
       tags: tags ? tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
@@ -48,7 +50,6 @@ export default function NotesPage() {
     await fetchNote(note.id)
   }
 
-  // Auto-save for existing notes
   const autoSave = useCallback(
     (noteId: number, data: { title?: string; content?: string; tags?: string[] }) => {
       if (saveTimer) clearTimeout(saveTimer)
@@ -62,16 +63,12 @@ export default function NotesPage() {
 
   const handleTitleChange = (value: string) => {
     setTitle(value)
-    if (currentNote) {
-      autoSave(currentNote.id, { title: value.trim() || undefined })
-    }
+    if (currentNote) autoSave(currentNote.id, { title: value.trim() || undefined })
   }
 
   const handleContentChange = (value: string) => {
     setContent(value)
-    if (currentNote) {
-      autoSave(currentNote.id, { content: value })
-    }
+    if (currentNote) autoSave(currentNote.id, { content: value })
   }
 
   const handleTagsChange = (value: string) => {
@@ -100,23 +97,28 @@ export default function NotesPage() {
 
   const formatDate = (d: string) => new Date(d).toLocaleString('zh-CN')
 
-  if (loading && notes.length === 0) {
-    return <div className="p-6 text-gray-400">加载中...</div>
+  if (!course) {
+    return <div className="p-6 text-gray-400">课程不存在 <button onClick={() => navigate('/notes')} className="text-indigo-600">返回</button></div>
   }
 
   return (
     <div className="flex h-full">
       {/* Note list */}
       <div className="w-72 border-r border-gray-200 bg-white overflow-y-auto">
-        <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-700">全部笔记</h2>
+        <div className="p-4 border-b border-gray-100">
+          <button onClick={() => navigate('/notes')} className="text-xs text-gray-400 hover:text-gray-600 mb-2">&larr; 全部笔记</button>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: course.color || '#6366f1' }} />
+            <h2 className="text-sm font-semibold text-gray-700 truncate">{course.name}</h2>
+          </div>
           <button
             onClick={handleNewNote}
-            className="text-xs px-2 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+            className="mt-2 text-xs px-2 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700"
           >
-            新建
+            新建笔记
           </button>
         </div>
+        {loading && <p className="p-4 text-xs text-gray-400">加载中...</p>}
         {notes.map((note) => (
           <button
             key={note.id}
@@ -127,18 +129,9 @@ export default function NotesPage() {
           >
             <div className="text-sm font-medium text-gray-900 truncate">{note.title}</div>
             <div className="text-xs text-gray-400 mt-1">{formatDate(note.updated_at)}</div>
-            {note.tags?.length > 0 && (
-              <div className="flex gap-1 mt-1 flex-wrap">
-                {note.tags.map((tag) => (
-                  <span key={tag} className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
           </button>
         ))}
-        {notes.length === 0 && (
+        {!loading && notes.length === 0 && (
           <p className="text-center text-gray-400 text-sm mt-8">暂无笔记</p>
         )}
       </div>
@@ -147,18 +140,6 @@ export default function NotesPage() {
       <div className="flex-1 overflow-y-auto">
         {showNewNote ? (
           <div className="p-6 max-w-3xl">
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">所属课程</label>
-              <select
-                value={newCourseId}
-                onChange={(e) => setNewCourseId(Number(e.target.value))}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                {courses.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
             <input
               type="text"
               value={title}
@@ -183,12 +164,8 @@ export default function NotesPage() {
               />
             </div>
             <div className="mt-4 flex gap-2">
-              <button onClick={handleSaveNew} className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700">
-                保存
-              </button>
-              <button onClick={() => { setShowNewNote(false); setIsEditing(false) }} className="px-4 py-2 text-gray-600 text-sm hover:text-gray-800">
-                取消
-              </button>
+              <button onClick={handleSaveNew} className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700">保存</button>
+              <button onClick={() => { setShowNewNote(false); setIsEditing(false) }} className="px-4 py-2 text-gray-600 text-sm hover:text-gray-800">取消</button>
             </div>
           </div>
         ) : currentNote ? (
