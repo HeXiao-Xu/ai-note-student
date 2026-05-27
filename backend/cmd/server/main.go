@@ -22,8 +22,14 @@ func main() {
 	}
 
 	userRepo := repository.NewUserRepository(db)
+	courseRepo := repository.NewCourseRepository(db)
+	noteRepo := repository.NewNoteRepository(db)
+
 	authService := service.NewAuthService(userRepo, cfg.JWT)
-	engine := router.Setup(authService)
+	courseService := service.NewCourseService(courseRepo)
+	noteService := service.NewNoteService(noteRepo, courseRepo)
+
+	engine := router.Setup(authService, courseService, noteService)
 
 	log.Printf("Server starting on :%s", cfg.Server.Port)
 	if err := engine.Run(":" + cfg.Server.Port); err != nil {
