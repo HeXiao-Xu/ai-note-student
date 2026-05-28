@@ -45,6 +45,10 @@ func (r *NoteRepository) Delete(id uint) error {
 	return r.db.Delete(&model.Note{}, id).Error
 }
 
+func (r *NoteRepository) DeleteByCourseID(courseID uint) error {
+	return r.db.Where("course_id = ?", courseID).Delete(&model.Note{}).Error
+}
+
 func (r *NoteRepository) Search(userID uint, query string) ([]model.Note, error) {
 	var notes []model.Note
 	err := r.db.Where("user_id = ? AND (title ILIKE ? OR content ILIKE ?)", userID, "%"+query+"%", "%"+query+"%").

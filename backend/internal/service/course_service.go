@@ -10,10 +10,11 @@ import (
 
 type CourseService struct {
 	courseRepo *repository.CourseRepository
+	noteRepo   *repository.NoteRepository
 }
 
-func NewCourseService(courseRepo *repository.CourseRepository) *CourseService {
-	return &CourseService{courseRepo: courseRepo}
+func NewCourseService(courseRepo *repository.CourseRepository, noteRepo *repository.NoteRepository) *CourseService {
+	return &CourseService{courseRepo: courseRepo, noteRepo: noteRepo}
 }
 
 type CreateCourseRequest struct {
@@ -87,6 +88,9 @@ func (s *CourseService) Delete(userID uint, courseID uint) error {
 	}
 	if course.UserID != userID {
 		return errors.New("permission denied")
+	}
+	if err := s.noteRepo.DeleteByCourseID(courseID); err != nil {
+		return err
 	}
 	return s.courseRepo.Delete(courseID)
 }

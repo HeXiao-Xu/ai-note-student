@@ -16,7 +16,7 @@ type Note struct {
 	Content     string          `gorm:"type:text" json:"content"`
 	Tags        StringList      `gorm:"type:jsonb;default:'[]'" json:"tags"`
 	IsExamFocus bool            `gorm:"default:false" json:"is_exam_focus"`
-	Embedding   pgvector.Vector `gorm:"type:vector(1024)" json:"-"`
+	Embedding   *pgvector.Vector `gorm:"type:vector(1024)" json:"-"`
 	CreatedAt   time.Time       `json:"created_at"`
 	UpdatedAt   time.Time       `json:"updated_at"`
 }

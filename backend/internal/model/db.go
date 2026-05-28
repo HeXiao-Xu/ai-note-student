@@ -13,6 +13,9 @@ func InitDB(dsn string) (*gorm.DB, error) {
 		return nil, fmt.Errorf("connect database: %w", err)
 	}
 
+	// Enable pgvector extension before creating tables
+	db.Exec("CREATE EXTENSION IF NOT EXISTS vector")
+
 	if err := db.AutoMigrate(&User{}, &Course{}, &Note{}); err != nil {
 		return nil, fmt.Errorf("migrate database: %w", err)
 	}

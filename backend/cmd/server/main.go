@@ -26,7 +26,7 @@ func main() {
 	noteRepo := repository.NewNoteRepository(db)
 
 	authService := service.NewAuthService(userRepo, cfg.JWT)
-	courseService := service.NewCourseService(courseRepo)
+	courseService := service.NewCourseService(courseRepo, noteRepo)
 	noteService := service.NewNoteService(noteRepo, courseRepo)
 
 	engine := router.Setup(authService, courseService, noteService)
