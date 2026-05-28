@@ -113,10 +113,13 @@ export default function NotesPage() {
     return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
   }
 
+  const getCourseName = (courseId: number) => courses.find((c) => c.id === courseId)?.name || ''
+  const getCourseColor = (courseId: number) => courses.find((c) => c.id === courseId)?.color || '#6366f1'
+
   if (loading && notes.length === 0) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="text-slate-500 text-sm">加载中...</div>
+        <div className="text-slate-400 text-sm">加载中...</div>
       </div>
     )
   }
@@ -124,16 +127,16 @@ export default function NotesPage() {
   return (
     <div className="flex h-full">
       {/* Note list */}
-      <div className="w-80 border-r border-slate-800 bg-slate-900/50 flex flex-col">
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between shrink-0">
-          <h2 className="text-sm font-semibold text-slate-300">全部笔记</h2>
+      <div className="w-72 border-r border-slate-200 bg-slate-50/50 flex flex-col shrink-0">
+        <div className="p-4 border-b border-slate-200 flex items-center justify-between shrink-0">
+          <h2 className="text-sm font-semibold text-slate-800">全部笔记</h2>
           <button
             onClick={handleNewNote}
             disabled={courses.length === 0}
-            className="flex items-center gap-1 text-xs px-3 py-1.5 bg-teal-500/10 text-teal-400 rounded-lg hover:bg-teal-500/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-medium"
+            className="flex items-center gap-1 text-xs px-2.5 py-1.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
             title={courses.length === 0 ? '请先创建课程' : '新建笔记'}
           >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
             新建
@@ -144,24 +147,32 @@ export default function NotesPage() {
             <button
               key={note.id}
               onClick={() => handleSelectNote(note.id)}
-              className={`w-full text-left px-4 py-3.5 border-b border-slate-800/50 transition-all animate-fade-in ${
+              className={`w-full text-left px-4 py-3 border-b border-slate-100 transition-all animate-fade-in ${
                 currentNote?.id === note.id
-                  ? 'bg-slate-800/80 border-l-2 border-l-teal-500'
-                  : 'hover:bg-slate-800/40 border-l-2 border-l-transparent'
+                  ? 'bg-white border-l-2 border-l-indigo-500'
+                  : 'hover:bg-white border-l-2 border-l-transparent'
               }`}
-              style={{ animationDelay: `${i * 30}ms` }}
+              style={{ animationDelay: `${i * 25}ms` }}
             >
-              <div className="text-sm font-medium text-slate-200 truncate">{note.title}</div>
-              <div className="text-xs text-slate-500 mt-1">{formatDate(note.updated_at)}</div>
+              <div className="text-sm font-medium text-slate-800 truncate">{note.title}</div>
+              <div className="flex items-center gap-2 mt-1">
+                <span
+                  className="w-1.5 h-1.5 rounded-full shrink-0"
+                  style={{ backgroundColor: getCourseColor(note.course_id) }}
+                />
+                <span className="text-[11px] text-slate-400">{getCourseName(note.course_id)}</span>
+                <span className="text-[11px] text-slate-300">·</span>
+                <span className="text-[11px] text-slate-400">{formatDate(note.updated_at)}</span>
+              </div>
               {note.tags?.length > 0 && (
                 <div className="flex gap-1 mt-1.5 flex-wrap">
                   {note.tags.slice(0, 3).map((tag) => (
-                    <span key={tag} className="text-[11px] bg-slate-800 text-teal-400/70 px-1.5 py-0.5 rounded">
+                    <span key={tag} className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded font-medium">
                       {tag}
                     </span>
                   ))}
                   {note.tags.length > 3 && (
-                    <span className="text-[11px] text-slate-600">+{note.tags.length - 3}</span>
+                    <span className="text-[10px] text-slate-400">+{note.tags.length - 3}</span>
                   )}
                 </div>
               )}
@@ -169,35 +180,30 @@ export default function NotesPage() {
           ))}
           {notes.length === 0 && courses.length === 0 && (
             <div className="p-6 text-center">
-              <p className="text-slate-500 text-sm mb-3">还没有课程</p>
-              <Link to="/courses" className="text-xs text-teal-400 hover:text-teal-300 transition-colors">
+              <p className="text-slate-400 text-sm mb-3">还没有课程</p>
+              <Link to="/courses" className="text-xs text-indigo-600 hover:text-indigo-500 transition-colors font-medium">
                 去创建课程 →
               </Link>
             </div>
           )}
           {notes.length === 0 && courses.length > 0 && (
             <div className="p-6 text-center">
-              <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-3">
-                <svg className="w-5 h-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                </svg>
-              </div>
-              <p className="text-slate-500 text-sm">暂无笔记</p>
+              <p className="text-slate-400 text-sm">暂无笔记</p>
             </div>
           )}
         </div>
       </div>
 
       {/* Note detail / editor */}
-      <div className="flex-1 overflow-y-auto bg-slate-950">
+      <div className="flex-1 overflow-y-auto bg-white">
         {showNewNote ? (
-          <div className="max-w-3xl mx-auto px-8 py-10 animate-slide-right">
-            <div className="mb-6">
-              <label className="block text-xs font-medium text-slate-500 mb-2 uppercase tracking-wider">所属课程</label>
+          <div className="max-w-2xl mx-auto px-8 py-10 animate-fade-in">
+            <div className="mb-5">
+              <label className="block text-xs font-medium text-slate-500 mb-1.5">所属课程</label>
               <select
                 value={newCourseId}
                 onChange={(e) => setNewCourseId(Number(e.target.value))}
-                className="bg-slate-800 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500/30"
+                className="bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-sm text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
               >
                 {courses.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
@@ -209,7 +215,7 @@ export default function NotesPage() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="笔记标题"
-              className="w-full text-3xl font-bold font-serif border-none outline-none mb-6 placeholder:text-slate-700 text-slate-100 bg-transparent"
+              className="w-full text-2xl font-bold border-none outline-none mb-6 placeholder:text-slate-300 text-slate-900 bg-transparent"
             />
             <textarea
               value={content}
@@ -223,27 +229,27 @@ export default function NotesPage() {
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
                 placeholder="标签（逗号分隔）"
-                className="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500/30"
+                className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
               />
             </div>
             <div className="mt-6 flex gap-3">
-              <button onClick={handleSaveNew} className="px-5 py-2.5 bg-teal-500 text-slate-950 text-sm font-semibold rounded-lg hover:bg-teal-400 transition-colors">
+              <button onClick={handleSaveNew} className="px-5 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors">
                 保存
               </button>
-              <button onClick={() => { setShowNewNote(false); setIsEditing(false) }} className="px-5 py-2.5 text-slate-500 text-sm hover:text-slate-300 transition-colors">
+              <button onClick={() => { setShowNewNote(false); setIsEditing(false) }} className="px-5 py-2 text-slate-500 text-sm hover:text-slate-700 transition-colors">
                 取消
               </button>
             </div>
           </div>
         ) : currentNote ? (
-          <div className="max-w-3xl mx-auto px-8 py-10 animate-slide-right">
+          <div className="max-w-2xl mx-auto px-8 py-10 animate-fade-in">
             {isEditing ? (
               <>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => handleTitleChange(e.target.value)}
-                  className="w-full text-3xl font-bold font-serif border-none outline-none mb-6 text-slate-100 bg-transparent"
+                  className="w-full text-2xl font-bold border-none outline-none mb-6 text-slate-900 bg-transparent"
                 />
                 <textarea
                   value={content}
@@ -256,62 +262,59 @@ export default function NotesPage() {
                     value={tags}
                     onChange={(e) => handleTagsChange(e.target.value)}
                     placeholder="标签（逗号分隔）"
-                    className="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500/30"
+                    className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
                   />
                 </div>
                 <div className="mt-3 flex items-center gap-2">
-                  {saving && (
-                    <span className="flex items-center gap-1.5 text-xs text-teal-400/70">
-                      <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-[pulse-dot_1.5s_ease-in-out_infinite]" />
+                  {saving ? (
+                    <span className="flex items-center gap-1.5 text-xs text-indigo-500">
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-[pulse-dot_1.5s_ease-in-out_infinite]" />
                       自动保存中...
                     </span>
-                  )}
-                  {!saving && (
-                    <span className="text-xs text-slate-600">自动保存已开启</span>
+                  ) : (
+                    <span className="text-xs text-slate-400">自动保存已开启</span>
                   )}
                 </div>
               </>
             ) : (
               <>
-                <div className="flex items-start justify-between mb-2">
-                  <h1 className="text-3xl font-bold text-slate-100 font-serif">{currentNote.title}</h1>
-                  <div className="flex gap-1 shrink-0 ml-4">
-                    <button onClick={handleEditNote} className="p-2 rounded-lg text-slate-500 hover:text-teal-400 hover:bg-slate-800 transition-colors" title="编辑">
+                <div className="flex items-start justify-between mb-1">
+                  <h1 className="text-2xl font-bold text-slate-900">{currentNote.title}</h1>
+                  <div className="flex gap-0.5 shrink-0 ml-4">
+                    <button onClick={handleEditNote} className="p-2 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" title="编辑">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
                       </svg>
                     </button>
-                    <button onClick={handleDeleteNote} className="p-2 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors" title="删除">
+                    <button onClick={handleDeleteNote} className="p-2 rounded-md text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors" title="删除">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                       </svg>
                     </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 mb-8 text-xs text-slate-500">
+                <div className="flex items-center gap-3 mb-6 text-xs text-slate-400">
                   <span>{formatDate(currentNote.updated_at)}</span>
                   {currentNote.tags?.length > 0 && (
                     <div className="flex gap-1.5">
                       {currentNote.tags.map((tag) => (
-                        <span key={tag} className="bg-slate-800 text-teal-400/70 px-2 py-0.5 rounded">{tag}</span>
+                        <span key={tag} className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded font-medium">{tag}</span>
                       ))}
                     </div>
                   )}
                 </div>
-                <div className="font-serif text-[0.9375rem] leading-[1.85] text-slate-300 whitespace-pre-wrap">
-                  {currentNote.content || <span className="text-slate-600 italic">空内容</span>}
+                <div className="font-serif text-[0.9375rem] leading-[1.85] text-slate-700 whitespace-pre-wrap">
+                  {currentNote.content || <span className="text-slate-300 italic">空内容</span>}
                 </div>
               </>
             )}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-full text-slate-600">
-            <div className="w-16 h-16 rounded-2xl bg-slate-900 flex items-center justify-center mb-4">
-              <svg className="w-7 h-7 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-              </svg>
-            </div>
-            <p className="text-sm">选择或创建一篇笔记</p>
+          <div className="flex flex-col items-center justify-center h-full text-slate-300">
+            <svg className="w-12 h-12 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={0.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+            </svg>
+            <p className="text-sm text-slate-400">选择或创建一篇笔记</p>
           </div>
         )}
       </div>
