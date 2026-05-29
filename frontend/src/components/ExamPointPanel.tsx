@@ -28,7 +28,7 @@ export default function ExamPointPanel({ noteId }: ExamPointPanelProps) {
   }
 
   return (
-    <div className="mt-6 pt-5 border-t border-slate-100">
+    <div>
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-slate-700">考点分析</h3>
         <button
