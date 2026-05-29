@@ -24,12 +24,46 @@ func main() {
 	userRepo := repository.NewUserRepository(db)
 	courseRepo := repository.NewCourseRepository(db)
 	noteRepo := repository.NewNoteRepository(db)
+	fileRepo := repository.NewFileRepository(db)
+	examPointRepo := repository.NewExamPointRepository(db)
+	wqRepo := repository.NewWrongQuestionRepository(db)
+	reviewPlanRepo := repository.NewReviewPlanRepository(db)
+
+	minioClient, err := service.NewMinIOClient(cfg.MinIO)
+	if err != nil {
+		log.Fatalf("init minio: %v", err)
+	}
+
+	// Initialize OCR provider based on config
+	var ocrProvider service.OCRProvider
+	switch cfg.OCR.Provider {
+	case "baidu":
+		ocrProvider = service.NewBaiduOCR(cfg.OCR.Baidu)
+	case "mathpix":
+		ocrProvider = service.NewMathpixOCR(cfg.OCR.Mathpix)
+	}
+
+	// Initialize LLM provider based on config
+	var llmProvider service.LLMProvider
+	switch cfg.LLM.Provider {
+	case "zhipu":
+		llmProvider = service.NewZhipuLLM(cfg.LLM.Zhipu)
+	case "openai":
+		llmProvider = service.NewOpenAILLM(cfg.LLM.OpenAI)
+	case "dashscope":
+		llmProvider = service.NewDashScopeLLM(cfg.LLM.DashScope)
+	}
 
 	authService := service.NewAuthService(userRepo, cfg.JWT)
 	courseService := service.NewCourseService(courseRepo, noteRepo)
 	noteService := service.NewNoteService(noteRepo, courseRepo)
+	fileService := service.NewFileService(fileRepo, noteRepo, minioClient, ocrProvider)
+	examPointService := service.NewExamPointService(examPointRepo, noteRepo, courseRepo, llmProvider)
+	noteAIService := service.NewNoteAIService(noteRepo, courseRepo, llmProvider)
+	wrongQuestionService := service.NewWrongQuestionService(wqRepo, noteRepo, minioClient, llmProvider)
+	reviewService := service.NewReviewService(reviewPlanRepo, examPointRepo, wqRepo, noteRepo)
 
-	engine := router.Setup(authService, courseService, noteService)
+	engine := router.Setup(authService, courseService, noteService, fileService, examPointService, noteAIService, wrongQuestionService, reviewService)
 
 	log.Printf("Server starting on :%s", cfg.Server.Port)
 	if err := engine.Run(":" + cfg.Server.Port); err != nil {

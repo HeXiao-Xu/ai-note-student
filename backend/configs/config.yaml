@@ -12,3 +12,32 @@ database:
 jwt:
   secret: "change-me-in-production"
   expiry_hour: 72
+
+minio:
+  endpoint: "localhost:9000"
+  access_key: "minioadmin"
+  secret_key: "minioadmin"
+  bucket: "ainote-files"
+  use_ssl: false
+
+ocr:
+  provider: "baidu"
+  baidu:
+    api_key: ""
+    secret_key: ""
+  mathpix:
+    app_id: ""
+    app_key: ""
+
+llm:
+  provider: "zhipu"
+  zhipu:
+    api_key: ""
+    model: "glm-4-flash"
+  openai:
+    api_key: ""
+    base_url: "https://api.openai.com/v1"
+    model: "gpt-4o-mini"
+  dashscope:
+    api_key: ""
+    model: "qwen-plus"

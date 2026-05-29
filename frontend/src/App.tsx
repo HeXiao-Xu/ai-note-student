@@ -13,6 +13,9 @@ import NotesPage from './pages/NotesPage'
 import CourseNotesPage from './pages/CourseNotesPage'
 import CoursesPage from './pages/CoursesPage'
 import SearchPage from './pages/SearchPage'
+import WrongQuestionsPage from './pages/WrongQuestionsPage'
+import ReviewPage from './pages/ReviewPage'
+import ReviewStatsPage from './pages/ReviewStatsPage'
 
 function App() {
   const initAuth = useAuthStore((s) => s.initAuth)
@@ -36,6 +39,9 @@ function App() {
           <Route path="/courses/:courseId/notes" element={<CourseNotesPage />} />
           <Route path="/courses" element={<CoursesPage />} />
           <Route path="/search" element={<SearchPage />} />
+          <Route path="/wrong-questions" element={<WrongQuestionsPage />} />
+          <Route path="/review" element={<ReviewPage />} />
+          <Route path="/review/stats" element={<ReviewStatsPage />} />
         </Route>
 
         {/* Default redirect */}

@@ -2,10 +2,21 @@ import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useNoteStore } from '../stores/noteStore'
 import { useCourseStore } from '../stores/courseStore'
+import { useFileStore } from '../stores/fileStore'
+import FileUploader from '../components/FileUploader'
+import FileList from '../components/FileList'
+import OcrResultModal from '../components/OcrResultModal'
+import ExamPointPanel from '../components/ExamPointPanel'
+import QuickNotesModal from '../components/QuickNotesModal'
+import * as fileApi from '../api/file'
+import * as noteAiApi from '../api/noteAi'
+import type { FileAttachment } from '../types/file'
+import type { QuickNotesResponse } from '../types/review'
 
 export default function NotesPage() {
   const { notes, currentNote, loading, fetchAllNotes, fetchNote, createNote, updateNote, deleteNote, setCurrentNote } = useNoteStore()
   const { courses } = useCourseStore()
+  const { files: attachments, fetchFiles, uploadFile, deleteFile: removeFile } = useFileStore()
   const [isEditing, setIsEditing] = useState(false)
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
@@ -14,6 +25,11 @@ export default function NotesPage() {
   const [newCourseId, setNewCourseId] = useState<number>(0)
   const [saveTimer, setSaveTimer] = useState<ReturnType<typeof setTimeout> | null>(null)
   const [saving, setSaving] = useState(false)
+  const [showAttachments, setShowAttachments] = useState(false)
+  const [ocrResultFile, setOcrResultFile] = useState<FileAttachment | null>(null)
+  const [quickNotes, setQuickNotes] = useState<QuickNotesResponse | null>(null)
+  const [generatingQuickNotes, setGeneratingQuickNotes] = useState(false)
+  const [savingQuickNotes, setSavingQuickNotes] = useState(false)
 
   useEffect(() => {
     fetchAllNotes()
@@ -31,6 +47,8 @@ export default function NotesPage() {
     await fetchNote(id)
     setShowNewNote(false)
     setIsEditing(false)
+    fetchFiles(id)
+    setShowAttachments(true)
   }
 
   const handleNewNote = () => {
@@ -100,6 +118,60 @@ export default function NotesPage() {
     if (confirm('确定删除该笔记？')) {
       await deleteNote(currentNote.id)
       setIsEditing(false)
+    }
+  }
+
+  const handleOCR = async (fileId: number) => {
+    try {
+      const result = await fileApi.triggerOCR(fileId)
+      setOcrResultFile(result)
+      if (currentNote) fetchFiles(currentNote.id)
+    } catch {
+      alert('OCR 识别失败，请重试')
+    }
+  }
+
+  const handleParse = async (fileId: number) => {
+    try {
+      const result = await fileApi.triggerParse(fileId)
+      setOcrResultFile(result)
+      if (currentNote) fetchFiles(currentNote.id)
+    } catch {
+      alert('解析失败，请重试')
+    }
+  }
+
+  const handleImportText = (text: string) => {
+    if (!currentNote) return
+    const newContent = currentNote.content ? currentNote.content + '\n\n' + text : text
+    setContent(newContent)
+    updateNote(currentNote.id, { content: newContent })
+    setOcrResultFile(null)
+    setIsEditing(true)
+  }
+
+  const handleGenerateQuickNotes = async () => {
+    if (!currentNote) return
+    setGeneratingQuickNotes(true)
+    try {
+      const result = await noteAiApi.generateQuickNotes(currentNote.id)
+      setQuickNotes(result)
+    } catch {
+      alert('生成速记版失败，请重试')
+    } finally {
+      setGeneratingQuickNotes(false)
+    }
+  }
+
+  const handleSaveQuickNotes = async () => {
+    if (!quickNotes) return
+    setSavingQuickNotes(true)
+    try {
+      // The backend already saves it as a new note, just close the modal
+      setQuickNotes(null)
+      fetchAllNotes()
+    } finally {
+      setSavingQuickNotes(false)
     }
   }
 
@@ -281,6 +353,11 @@ export default function NotesPage() {
                 <div className="flex items-start justify-between mb-1">
                   <h1 className="text-2xl font-bold text-slate-900">{currentNote.title}</h1>
                   <div className="flex gap-0.5 shrink-0 ml-4">
+                    <button onClick={handleGenerateQuickNotes} disabled={generatingQuickNotes} className="p-2 rounded-md text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors disabled:opacity-50" title="生成速记版">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                      </svg>
+                    </button>
                     <button onClick={handleEditNote} className="p-2 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" title="编辑">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
@@ -306,6 +383,33 @@ export default function NotesPage() {
                 <div className="font-serif text-[0.9375rem] leading-[1.85] text-slate-700 whitespace-pre-wrap">
                   {currentNote.content || <span className="text-slate-300 italic">空内容</span>}
                 </div>
+
+                {/* Exam Points */}
+                <ExamPointPanel noteId={currentNote.id} />
+
+                {/* Attachments panel */}
+                <div className="mt-8 pt-6 border-t border-slate-100">
+                  <button
+                    onClick={() => setShowAttachments(!showAttachments)}
+                    className="flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors mb-3"
+                  >
+                    <svg className={`w-4 h-4 transition-transform ${showAttachments ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    </svg>
+                    附件 ({attachments.length})
+                  </button>
+                  {showAttachments && (
+                    <div className="space-y-3 animate-fade-in">
+                      <FileList
+                        files={attachments}
+                        onDelete={removeFile}
+                        onOcr={handleOCR}
+                        onParse={handleParse}
+                      />
+                      <FileUploader onUpload={(file) => uploadFile(currentNote.id, file)} />
+                    </div>
+                  )}
+                </div>
               </>
             )}
           </div>
@@ -318,6 +422,25 @@ export default function NotesPage() {
           </div>
         )}
       </div>
+
+      {/* OCR/Parse result modal */}
+      {ocrResultFile && (
+        <OcrResultModal
+          file={ocrResultFile}
+          onClose={() => setOcrResultFile(null)}
+          onImport={handleImportText}
+        />
+      )}
+
+      {/* Quick Notes Modal */}
+      {quickNotes && (
+        <QuickNotesModal
+          data={quickNotes}
+          onClose={() => setQuickNotes(null)}
+          onSave={handleSaveQuickNotes}
+          saving={savingQuickNotes}
+        />
+      )}
     </div>
   )
 }
