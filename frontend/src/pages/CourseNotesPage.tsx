@@ -2,12 +2,19 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useNoteStore } from '../stores/noteStore'
 import { useCourseStore } from '../stores/courseStore'
+import { useFileStore } from '../stores/fileStore'
+import FileUploader from '../components/FileUploader'
+import FileList from '../components/FileList'
+import OcrResultModal from '../components/OcrResultModal'
+import * as fileApi from '../api/file'
+import type { FileAttachment } from '../types/file'
 
 export default function CourseNotesPage() {
   const { courseId } = useParams<{ courseId: string }>()
   const navigate = useNavigate()
   const { notes, currentNote, loading, fetchNotesByCourse, fetchNote, createNote, updateNote, deleteNote, setCurrentNote } = useNoteStore()
   const { courses } = useCourseStore()
+  const { files: attachments, fetchFiles, uploadFile, deleteFile: removeFile } = useFileStore()
   const course = courses.find((c) => c.id === Number(courseId))
 
   const [isEditing, setIsEditing] = useState(false)
@@ -33,9 +40,14 @@ export default function CourseNotesPage() {
     }
   }, [currentNote?.id])
 
+  const [showAttachments, setShowAttachments] = useState(false)
+  const [ocrResultFile, setOcrResultFile] = useState<FileAttachment | null>(null)
+
   const handleSelectNote = async (id: number) => {
     await fetchNote(id)
     setShowNewNote(false)
+    fetchFiles(id)
+    setShowAttachments(true)
   }
 
   const handleNewNote = () => {
@@ -104,6 +116,35 @@ export default function CourseNotesPage() {
       await deleteNote(currentNote.id)
       setIsEditing(false)
     }
+  }
+
+  const handleOCR = async (fileId: number) => {
+    try {
+      const result = await fileApi.triggerOCR(fileId)
+      setOcrResultFile(result)
+      if (currentNote) fetchFiles(currentNote.id)
+    } catch {
+      alert('OCR 识别失败，请重试')
+    }
+  }
+
+  const handleParse = async (fileId: number) => {
+    try {
+      const result = await fileApi.triggerParse(fileId)
+      setOcrResultFile(result)
+      if (currentNote) fetchFiles(currentNote.id)
+    } catch {
+      alert('解析失败，请重试')
+    }
+  }
+
+  const handleImportText = (text: string) => {
+    if (!currentNote) return
+    const newContent = currentNote.content ? currentNote.content + '\n\n' + text : text
+    setContent(newContent)
+    updateNote(currentNote.id, { content: newContent })
+    setOcrResultFile(null)
+    setIsEditing(true)
   }
 
   const formatDate = (d: string) => {
@@ -275,6 +316,30 @@ export default function CourseNotesPage() {
                 <div className="font-serif text-[0.9375rem] leading-[1.85] text-slate-700 whitespace-pre-wrap">
                   {currentNote.content || <span className="text-slate-300 italic">空内容</span>}
                 </div>
+
+                {/* Attachments panel */}
+                <div className="mt-8 pt-6 border-t border-slate-100">
+                  <button
+                    onClick={() => setShowAttachments(!showAttachments)}
+                    className="flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors mb-3"
+                  >
+                    <svg className={`w-4 h-4 transition-transform ${showAttachments ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    </svg>
+                    附件 ({attachments.length})
+                  </button>
+                  {showAttachments && (
+                    <div className="space-y-3 animate-fade-in">
+                      <FileList
+                        files={attachments}
+                        onDelete={removeFile}
+                        onOcr={handleOCR}
+                        onParse={handleParse}
+                      />
+                      <FileUploader onUpload={(file) => uploadFile(currentNote.id, file)} />
+                    </div>
+                  )}
+                </div>
               </>
             )}
           </div>
@@ -287,6 +352,15 @@ export default function CourseNotesPage() {
           </div>
         )}
       </div>
+
+      {/* OCR/Parse result modal */}
+      {ocrResultFile && (
+        <OcrResultModal
+          file={ocrResultFile}
+          onClose={() => setOcrResultFile(null)}
+          onImport={handleImportText}
+        />
+      )}
     </div>
   )
 }
