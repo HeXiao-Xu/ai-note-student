@@ -52,6 +52,7 @@ func Setup(
 
 			courses.GET("/:courseId/notes", noteHandler.ListByCourse)
 			courses.POST("/:courseId/notes", noteHandler.Create)
+			courses.POST("/:courseId/notes/import", noteHandler.ImportDocument)
 		}
 
 		notes := api.Group("/notes")
@@ -59,6 +60,7 @@ func Setup(
 			notes.GET("", noteHandler.ListAll)
 			notes.GET("/search", noteHandler.Search)
 			notes.GET("/:id", noteHandler.Get)
+			notes.GET("/:id/document", noteHandler.DownloadDocument)
 			notes.PUT("/:id", noteHandler.Update)
 			notes.DELETE("/:id", noteHandler.Delete)
 
@@ -76,8 +78,6 @@ func Setup(
 		{
 			files.GET("/:id/download", fileHandler.Download)
 			files.DELETE("/:id", fileHandler.Delete)
-			files.POST("/:id/ocr", fileHandler.TriggerOCR)
-			files.POST("/:id/parse", fileHandler.TriggerParse)
 		}
 
 		// Quick notes generation

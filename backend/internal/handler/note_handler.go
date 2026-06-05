@@ -160,3 +160,86 @@ func (h *NoteHandler) Search(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, notes)
 }
+
+func (h *NoteHandler) ImportDocument(c *gin.Context) {
+	userID := c.GetUint("user_id")
+	courseID, err := strconv.ParseUint(c.Param("courseId"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid course id"})
+		return
+	}
+
+	file, header, err := c.Request.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "file is required"})
+		return
+	}
+	defer file.Close()
+
+	if header.Size > 50*1024*1024 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "file size exceeds 50MB limit"})
+		return
+	}
+
+	note, err := h.noteService.ImportDocument(c.Request.Context(), userID, uint(courseID), header.Filename, header.Size, file)
+	if err != nil {
+		if err.Error() == "course not found" {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		if err.Error() == "permission denied" {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, note)
+}
+
+func (h *NoteHandler) DownloadDocument(c *gin.Context) {
+	userID := c.GetUint("user_id")
+	noteID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid note id"})
+		return
+	}
+
+	obj, note, err := h.noteService.DownloadDocument(c.Request.Context(), userID, uint(noteID))
+	if err != nil {
+		if err.Error() == "note not found" {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		if err.Error() == "permission denied" {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer obj.Close()
+
+	// Determine content type and filename
+	ext := ""
+	switch note.FileType {
+	case "pdf":
+		ext = ".pdf"
+	case "pptx":
+		ext = ".pptx"
+	case "docx":
+		ext = ".docx"
+	}
+	fileName := note.Title + ext
+	contentType := "application/octet-stream"
+	disposition := "attachment"
+	if note.FileType == "pdf" {
+		contentType = "application/pdf"
+		disposition = "inline"
+	}
+
+	c.Header("Content-Disposition", disposition+"; filename=\""+fileName+"\"")
+	c.Header("Content-Type", contentType)
+	c.DataFromReader(http.StatusOK, -1, contentType, obj, nil)
+}

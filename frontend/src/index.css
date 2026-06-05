@@ -111,6 +111,19 @@ body {
   font-size: 0.9375rem !important;
   line-height: 1.85 !important;
   color: var(--color-slate-800) !important;
+  caret-color: var(--color-slate-900) !important;
+}
+/* 编辑区光标加粗 */
+.vditor-reset [contenteditable="true"] {
+  caret-color: var(--color-slate-950) !important;
+  font-weight: 500;
+}
+.vditor-wysiwyg .vditor-reset {
+  caret-color: var(--color-slate-950) !important;
+}
+/* 代码块内保持正常字重 */
+.vditor-reset code, .vditor-reset pre {
+  font-weight: 400 !important;
 }
 .vditor-reset h1 { font-size: 1.75rem; font-weight: 700; margin: 1.5rem 0 0.75rem; color: var(--color-slate-900); }
 .vditor-reset h2 { font-size: 1.4rem; font-weight: 600; margin: 1.25rem 0 0.6rem; color: var(--color-slate-900); }

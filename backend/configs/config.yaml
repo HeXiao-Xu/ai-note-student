@@ -20,15 +20,6 @@ minio:
   bucket: "ainote-files"
   use_ssl: false
 
-ocr:
-  provider: "baidu"
-  baidu:
-    api_key: ""
-    secret_key: ""
-  mathpix:
-    app_id: ""
-    app_key: ""
-
 llm:
   provider: "zhipu"
   embedding_model: "embedding-3"

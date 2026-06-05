@@ -41,13 +41,3 @@ export function saveBlobAsFile(blob: Blob, filename: string) {
   document.body.removeChild(a)
   URL.revokeObjectURL(url)
 }
-
-export async function triggerOCR(fileId: number): Promise<FileAttachment> {
-  const res = await client.post<FileAttachment>(`/files/${fileId}/ocr`, null, { timeout: 30000 })
-  return res.data
-}
-
-export async function triggerParse(fileId: number): Promise<FileAttachment> {
-  const res = await client.post<FileAttachment>(`/files/${fileId}/parse`, null, { timeout: 30000 })
-  return res.data
-}

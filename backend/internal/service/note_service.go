@@ -1,20 +1,27 @@
 package service
 
 import (
+	"context"
 	"errors"
+	"fmt"
+	"io"
+	"path/filepath"
+	"strings"
 
 	"github.com/ai-note-student/backend/internal/model"
 	"github.com/ai-note-student/backend/internal/repository"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type NoteService struct {
 	noteRepo   *repository.NoteRepository
 	courseRepo *repository.CourseRepository
+	minio      *MinIOClient
 }
 
-func NewNoteService(noteRepo *repository.NoteRepository, courseRepo *repository.CourseRepository) *NoteService {
-	return &NoteService{noteRepo: noteRepo, courseRepo: courseRepo}
+func NewNoteService(noteRepo *repository.NoteRepository, courseRepo *repository.CourseRepository, minio *MinIOClient) *NoteService {
+	return &NoteService{noteRepo: noteRepo, courseRepo: courseRepo, minio: minio}
 }
 
 type CreateNoteRequest struct {
@@ -27,6 +34,64 @@ type UpdateNoteRequest struct {
 	Title    string   `json:"title" binding:"max=200"`
 	Content  *string  `json:"content"`
 	Tags     []string `json:"tags"`
+}
+
+var noteImportExtensions = map[string]bool{
+	".pdf":  true,
+	".pptx": true,
+	".docx": true,
+}
+
+func (s *NoteService) ImportDocument(ctx context.Context, userID uint, courseID uint, fileName string, fileSize int64, reader io.Reader) (*model.Note, error) {
+	// Verify course belongs to user
+	course, err := s.courseRepo.FindByID(courseID)
+	if err != nil {
+		return nil, errors.New("course not found")
+	}
+	if course.UserID != userID {
+		return nil, errors.New("permission denied")
+	}
+
+	// Validate file extension
+	ext := strings.ToLower(filepath.Ext(fileName))
+	if !noteImportExtensions[ext] {
+		return nil, fmt.Errorf("file type %s is not allowed for import", ext)
+	}
+
+	// Determine file type
+	fileType := ""
+	switch ext {
+	case ".pdf":
+		fileType = "pdf"
+	case ".pptx":
+		fileType = "pptx"
+	case ".docx":
+		fileType = "docx"
+	}
+
+	// Upload to MinIO: imports/{user_id}/{course_id}/{uuid}.{ext}
+	objectKey := fmt.Sprintf("imports/%d/%d/%s%s", userID, courseID, uuid.New().String(), ext)
+	contentType := contentTypeForExt(ext)
+	if err := s.minio.Upload(ctx, objectKey, reader, fileSize, contentType); err != nil {
+		return nil, fmt.Errorf("upload to storage: %w", err)
+	}
+
+	// Create note with file info
+	title := strings.TrimSuffix(fileName, filepath.Ext(fileName))
+	note := &model.Note{
+		UserID:        userID,
+		CourseID:      courseID,
+		Title:         title,
+		FileType:      fileType,
+		FileObjectKey: objectKey,
+		Tags:          model.StringList{},
+	}
+	if err := s.noteRepo.Create(note); err != nil {
+		_ = s.minio.Delete(ctx, objectKey)
+		return nil, err
+	}
+
+	return note, nil
 }
 
 func (s *NoteService) ListByCourse(userID uint, courseID uint) ([]model.Note, error) {
@@ -131,4 +196,19 @@ func (s *NoteService) Delete(userID uint, noteID uint) error {
 
 func (s *NoteService) Search(userID uint, query string) ([]model.Note, error) {
 	return s.noteRepo.Search(userID, query)
+}
+
+func (s *NoteService) DownloadDocument(ctx context.Context, userID uint, noteID uint) (io.ReadCloser, *model.Note, error) {
+	note, err := s.Get(userID, noteID)
+	if err != nil {
+		return nil, nil, err
+	}
+	if note.FileObjectKey == "" {
+		return nil, nil, errors.New("note has no document")
+	}
+	obj, err := s.minio.Download(ctx, note.FileObjectKey)
+	if err != nil {
+		return nil, nil, fmt.Errorf("download from storage: %w", err)
+	}
+	return obj, note, nil
 }

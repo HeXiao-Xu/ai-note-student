@@ -6,6 +6,8 @@ export interface Note {
   content: string
   tags: string[]
   is_exam_focus: boolean
+  file_type: string
+  file_object_key: string
   created_at: string
   updated_at: string
 }

@@ -13,6 +13,7 @@ interface NoteState {
   fetchAllNotes: () => Promise<void>
   fetchNote: (id: number) => Promise<void>
   createNote: (courseId: number, data: CreateNoteRequest) => Promise<Note>
+  importDocument: (courseId: number, file: File) => Promise<Note>
   updateNote: (id: number, data: UpdateNoteRequest) => Promise<Note>
   deleteNote: (id: number) => Promise<void>
   searchNotes: (query: string) => Promise<void>
@@ -62,6 +63,12 @@ export const useNoteStore = create<NoteState>((set, get) => ({
 
   createNote: async (courseId, data) => {
     const note = await noteApi.createNote(courseId, data)
+    set({ notes: [note, ...get().notes] })
+    return note
+  },
+
+  importDocument: async (courseId, file) => {
+    const note = await noteApi.importDocument(courseId, file)
     set({ notes: [note, ...get().notes] })
     return note
   },

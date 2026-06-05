@@ -24,24 +24,16 @@ var allowedExtensions = map[string]bool{
 }
 
 type FileService struct {
-	fileRepo    *repository.FileRepository
-	noteRepo    *repository.NoteRepository
-	minio       *MinIOClient
-	ocrProvider OCRProvider
-	parsers     map[string]DocumentParser
+	fileRepo *repository.FileRepository
+	noteRepo *repository.NoteRepository
+	minio    *MinIOClient
 }
 
-func NewFileService(fileRepo *repository.FileRepository, noteRepo *repository.NoteRepository, minio *MinIOClient, ocrProvider OCRProvider) *FileService {
+func NewFileService(fileRepo *repository.FileRepository, noteRepo *repository.NoteRepository, minio *MinIOClient) *FileService {
 	return &FileService{
-		fileRepo:    fileRepo,
-		noteRepo:    noteRepo,
-		minio:       minio,
-		ocrProvider: ocrProvider,
-		parsers: map[string]DocumentParser{
-			"pdf":  NewPDFParser(),
-			"pptx": NewPPTXParser(),
-			"docx": NewDOCXParser(),
-		},
+		fileRepo: fileRepo,
+		noteRepo: noteRepo,
+		minio:    minio,
 	}
 }
 
@@ -78,13 +70,11 @@ func (s *FileService) Upload(ctx context.Context, userID uint, noteID uint, file
 
 	// Save record to DB
 	file := &model.FileAttachment{
-		NoteID:      noteID,
-		FileName:    fileName,
-		FileType:    fileType,
-		ObjectKey:   objectKey,
-		FileSize:    fileSize,
-		OcrStatus:   "pending",
-		ParseStatus: "pending",
+		NoteID:   noteID,
+		FileName: fileName,
+		FileType: fileType,
+		ObjectKey: objectKey,
+		FileSize: fileSize,
 	}
 	if err := s.fileRepo.Create(file); err != nil {
 		// Attempt cleanup from MinIO
@@ -159,118 +149,6 @@ func (s *FileService) Delete(ctx context.Context, userID uint, fileID uint) erro
 	_ = s.minio.Delete(ctx, file.ObjectKey)
 
 	return s.fileRepo.Delete(fileID)
-}
-
-func (s *FileService) TriggerOCR(ctx context.Context, userID uint, fileID uint) (*model.FileAttachment, error) {
-	file, err := s.fileRepo.FindByID(fileID)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("file not found")
-		}
-		return nil, err
-	}
-
-	note, err := s.noteRepo.FindByID(file.NoteID)
-	if err != nil {
-		return nil, errors.New("note not found")
-	}
-	if note.UserID != userID {
-		return nil, errors.New("permission denied")
-	}
-
-	if s.ocrProvider == nil {
-		return nil, errors.New("OCR service not configured")
-	}
-
-	// Mark as processing
-	file.OcrStatus = "processing"
-	s.fileRepo.Update(file)
-
-	// Download from MinIO
-	obj, err := s.minio.Download(ctx, file.ObjectKey)
-	if err != nil {
-		file.OcrStatus = "failed"
-		s.fileRepo.Update(file)
-		return nil, fmt.Errorf("download file: %w", err)
-	}
-	defer obj.Close()
-
-	imageData, err := io.ReadAll(obj)
-	if err != nil {
-		file.OcrStatus = "failed"
-		s.fileRepo.Update(file)
-		return nil, fmt.Errorf("read file data: %w", err)
-	}
-
-	// Run OCR
-	result, err := s.ocrProvider.Recognize(ctx, imageData, filepath.Ext(file.FileName))
-	if err != nil {
-		file.OcrStatus = "failed"
-		s.fileRepo.Update(file)
-		return nil, fmt.Errorf("OCR recognize: %w", err)
-	}
-
-	file.OcrText = result.Text
-	file.OcrStatus = "done"
-	s.fileRepo.Update(file)
-
-	return file, nil
-}
-
-func (s *FileService) TriggerParse(ctx context.Context, userID uint, fileID uint) (*model.FileAttachment, error) {
-	file, err := s.fileRepo.FindByID(fileID)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("file not found")
-		}
-		return nil, err
-	}
-
-	note, err := s.noteRepo.FindByID(file.NoteID)
-	if err != nil {
-		return nil, errors.New("note not found")
-	}
-	if note.UserID != userID {
-		return nil, errors.New("permission denied")
-	}
-
-	parser, ok := s.parsers[file.FileType]
-	if !ok {
-		return nil, fmt.Errorf("no parser available for file type: %s", file.FileType)
-	}
-
-	// Mark as processing
-	file.ParseStatus = "processing"
-	s.fileRepo.Update(file)
-
-	// Download from MinIO
-	obj, err := s.minio.Download(ctx, file.ObjectKey)
-	if err != nil {
-		file.ParseStatus = "failed"
-		s.fileRepo.Update(file)
-		return nil, fmt.Errorf("download file: %w", err)
-	}
-	defer obj.Close()
-
-	data, err := io.ReadAll(obj)
-	if err != nil {
-		file.ParseStatus = "failed"
-		s.fileRepo.Update(file)
-		return nil, fmt.Errorf("read file data: %w", err)
-	}
-
-	result, err := parser.Parse(ctx, data)
-	if err != nil {
-		file.ParseStatus = "failed"
-		s.fileRepo.Update(file)
-		return nil, fmt.Errorf("parse document: %w", err)
-	}
-
-	file.ParseText = result.Text
-	file.ParseStatus = "done"
-	s.fileRepo.Update(file)
-
-	return file, nil
 }
 
 func categorizeFile(ext string) string {

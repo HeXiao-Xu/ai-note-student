@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import MDEditor from '@uiw/react-md-editor'
 import VditorEditor from '../components/VditorEditor'
 import { useParams, useNavigate } from 'react-router-dom'
@@ -7,14 +7,12 @@ import { useCourseStore } from '../stores/courseStore'
 import { useFileStore } from '../stores/fileStore'
 import FileUploader from '../components/FileUploader'
 import FileList from '../components/FileList'
-import OcrResultModal from '../components/OcrResultModal'
-import * as fileApi from '../api/file'
 import type { FileAttachment } from '../types/file'
 
 export default function CourseNotesPage() {
   const { courseId } = useParams<{ courseId: string }>()
   const navigate = useNavigate()
-  const { notes, currentNote, loading, fetchNotesByCourse, fetchNote, createNote, updateNote, deleteNote, setCurrentNote } = useNoteStore()
+  const { notes, currentNote, loading, fetchNotesByCourse, fetchNote, createNote, importDocument, updateNote, deleteNote, setCurrentNote } = useNoteStore()
   const { courses } = useCourseStore()
   const { files: attachments, fetchFiles, uploadFile, deleteFile: removeFile } = useFileStore()
   const course = courses.find((c) => c.id === Number(courseId))
@@ -43,7 +41,8 @@ export default function CourseNotesPage() {
   }, [currentNote?.id])
 
   const [showAttachments, setShowAttachments] = useState(false)
-  const [ocrResultFile, setOcrResultFile] = useState<FileAttachment | null>(null)
+  const [importing, setImporting] = useState(false)
+  const importInputRef = useRef<HTMLInputElement>(null)
 
   const handleSelectNote = async (id: number) => {
     await fetchNote(id)
@@ -120,33 +119,30 @@ export default function CourseNotesPage() {
     }
   }
 
-  const handleOCR = async (fileId: number) => {
+  const handleImportFile = async () => {
+    if (!importInputRef.current?.files?.length || !courseId) return
+    const file = importInputRef.current.files[0]
+    const ext = '.' + file.name.split('.').pop()?.toLowerCase()
+    if (!['.pdf', '.pptx', '.docx'].includes(ext)) {
+      alert('仅支持 PDF / PPTX / DOCX 格式')
+      return
+    }
+    setImporting(true)
     try {
-      const result = await fileApi.triggerOCR(fileId)
-      setOcrResultFile(result)
-      if (currentNote) fetchFiles(currentNote.id)
+      const note = await importDocument(Number(courseId), file)
+      await fetchNote(note.id)
+      fetchNotesByCourse(Number(courseId))
     } catch {
-      alert('OCR 识别失败，请重试')
+      alert('导入失败，请重试')
+    } finally {
+      setImporting(false)
     }
   }
 
-  const handleParse = async (fileId: number) => {
-    try {
-      const result = await fileApi.triggerParse(fileId)
-      setOcrResultFile(result)
-      if (currentNote) fetchFiles(currentNote.id)
-    } catch {
-      alert('解析失败，请重试')
+  const handlePreviewFile = (file: FileAttachment) => {
+    if (file.file_type === 'pdf') {
+      window.open(`/api/files/${file.id}/download`, '_blank')
     }
-  }
-
-  const handleImportText = (text: string) => {
-    if (!currentNote) return
-    const newContent = currentNote.content ? currentNote.content + '\n\n' + text : text
-    setContent(newContent)
-    updateNote(currentNote.id, { content: newContent })
-    setOcrResultFile(null)
-    setIsEditing(true)
   }
 
   const formatDate = (d: string) => {
@@ -195,6 +191,24 @@ export default function CourseNotesPage() {
               </svg>
               新建
             </button>
+            <button
+              onClick={() => importInputRef.current?.click()}
+              disabled={importing}
+              className="flex items-center gap-1 text-xs px-2 py-1.5 text-indigo-600 border border-indigo-200 rounded-md hover:bg-indigo-50 disabled:opacity-50 transition-colors font-medium"
+              title="导入文档"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+              </svg>
+              {importing ? '导入中...' : '导入'}
+            </button>
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".pdf,.pptx,.docx"
+              className="hidden"
+              onChange={handleImportFile}
+            />
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
@@ -210,7 +224,10 @@ export default function CourseNotesPage() {
               }`}
               style={{ animationDelay: `${i * 25}ms` }}
             >
-              <div className="text-sm font-medium text-slate-800 truncate">{note.title}</div>
+              <div className="flex items-center gap-2">
+                {note.file_type && <span className="text-sm shrink-0">{{pdf:'📄',pptx:'📊',docx:'📝'}[note.file_type] || '📎'}</span>}
+                <div className="text-sm font-medium text-slate-800 truncate">{note.title}</div>
+              </div>
               <div className="text-[11px] text-slate-400 mt-1">{formatDate(note.updated_at)}</div>
             </button>
           ))}
@@ -288,8 +305,23 @@ export default function CourseNotesPage() {
             ) : (
               <>
                 <div className="flex items-start justify-between mb-1">
-                  <h1 className="text-2xl font-bold text-slate-900">{currentNote.title}</h1>
-                  <div className="flex gap-0.5 shrink-0 ml-4">
+                  <div className="flex items-center gap-2">
+                    {currentNote.file_type && <span className="text-lg">{{pdf:'📄',pptx:'📊',docx:'📝'}[currentNote.file_type] || '📎'}</span>}
+                    <h1 className="text-2xl font-bold text-slate-900">{currentNote.title}</h1>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0 ml-4">
+                    {currentNote.file_type && (
+                      <button
+                        onClick={() => window.open(`/api/notes/${currentNote.id}/document`, '_blank')}
+                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-indigo-50 text-indigo-600 border border-indigo-200 rounded-md hover:bg-indigo-100 transition-colors font-medium"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        查看文档
+                      </button>
+                    )}
                     <button onClick={handleEditNote} className="p-2 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" title="编辑">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
@@ -313,10 +345,33 @@ export default function CourseNotesPage() {
                   )}
                 </div>
                 <div>
-                  {currentNote.content ? (
-                    <MDEditor.Markdown source={currentNote.content} />
+                  {currentNote.file_type ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                        <span className="text-2xl">{{pdf:'📄',pptx:'📊',docx:'📝'}[currentNote.file_type] || '📎'}</span>
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-slate-700">{currentNote.title}</div>
+                          <div className="text-xs text-slate-400 mt-0.5">{currentNote.file_type.toUpperCase()} 文档</div>
+                        </div>
+                        <button
+                          onClick={() => window.open(`/api/notes/${currentNote.id}/document`, '_blank')}
+                          className="px-3 py-1.5 text-xs font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+                        >
+                          打开文档
+                        </button>
+                      </div>
+                      {currentNote.content ? (
+                        <MDEditor.Markdown source={currentNote.content} />
+                      ) : (
+                        <p className="text-slate-400 text-sm italic">点击上方按钮查看完整文档内容</p>
+                      )}
+                    </div>
                   ) : (
-                    <span className="text-slate-300 italic">空内容</span>
+                    currentNote.content ? (
+                      <MDEditor.Markdown source={currentNote.content} />
+                    ) : (
+                      <span className="text-slate-300 italic">空内容</span>
+                    )
                   )}
                 </div>
 
@@ -336,8 +391,7 @@ export default function CourseNotesPage() {
                       <FileList
                         files={attachments}
                         onDelete={removeFile}
-                        onOcr={handleOCR}
-                        onParse={handleParse}
+                        onPreview={handlePreviewFile}
                       />
                       <FileUploader onUpload={(file) => uploadFile(currentNote.id, file)} />
                     </div>
@@ -356,14 +410,6 @@ export default function CourseNotesPage() {
         )}
       </div>
 
-      {/* OCR/Parse result modal */}
-      {ocrResultFile && (
-        <OcrResultModal
-          file={ocrResultFile}
-          onClose={() => setOcrResultFile(null)}
-          onImport={handleImportText}
-        />
-      )}
     </div>
   )
 }

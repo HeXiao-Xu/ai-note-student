@@ -101,9 +101,16 @@ func (h *FileHandler) Download(c *gin.Context) {
 	}
 	defer stream.Close()
 
-	c.Header("Content-Disposition", "attachment; filename=\""+file.FileName+"\"")
-	c.Header("Content-Type", "application/octet-stream")
-	c.DataFromReader(http.StatusOK, file.FileSize, "application/octet-stream", stream, nil)
+	// For PDF files, display inline; others download as attachment
+	contentType := "application/octet-stream"
+	disposition := "attachment"
+	if file.FileType == "pdf" {
+		contentType = "application/pdf"
+		disposition = "inline"
+	}
+	c.Header("Content-Disposition", disposition+"; filename=\""+file.FileName+"\"")
+	c.Header("Content-Type", contentType)
+	c.DataFromReader(http.StatusOK, file.FileSize, contentType, stream, nil)
 }
 
 func (h *FileHandler) Delete(c *gin.Context) {
@@ -127,52 +134,4 @@ func (h *FileHandler) Delete(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "deleted"})
-}
-
-func (h *FileHandler) TriggerOCR(c *gin.Context) {
-	userID := c.GetUint("user_id")
-	fileID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid file id"})
-		return
-	}
-
-	file, err := h.fileService.TriggerOCR(c.Request.Context(), userID, uint(fileID))
-	if err != nil {
-		if err.Error() == "file not found" || err.Error() == "note not found" {
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-			return
-		}
-		if err.Error() == "permission denied" {
-			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, file)
-}
-
-func (h *FileHandler) TriggerParse(c *gin.Context) {
-	userID := c.GetUint("user_id")
-	fileID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid file id"})
-		return
-	}
-
-	file, err := h.fileService.TriggerParse(c.Request.Context(), userID, uint(fileID))
-	if err != nil {
-		if err.Error() == "file not found" || err.Error() == "note not found" {
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-			return
-		}
-		if err.Error() == "permission denied" {
-			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, file)
 }

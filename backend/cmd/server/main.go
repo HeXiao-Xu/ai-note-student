@@ -36,15 +36,6 @@ func main() {
 		log.Fatalf("init minio: %v", err)
 	}
 
-	// Initialize OCR provider based on config
-	var ocrProvider service.OCRProvider
-	switch cfg.OCR.Provider {
-	case "baidu":
-		ocrProvider = service.NewBaiduOCR(cfg.OCR.Baidu)
-	case "mathpix":
-		ocrProvider = service.NewMathpixOCR(cfg.OCR.Mathpix)
-	}
-
 	// Initialize LLM provider based on config
 	var llmProvider service.LLMProvider
 	var embeddingProvider service.EmbeddingProvider
@@ -62,8 +53,8 @@ func main() {
 
 	authService := service.NewAuthService(userRepo, cfg.JWT)
 	courseService := service.NewCourseService(courseRepo, noteRepo)
-	noteService := service.NewNoteService(noteRepo, courseRepo)
-	fileService := service.NewFileService(fileRepo, noteRepo, minioClient, ocrProvider)
+	noteService := service.NewNoteService(noteRepo, courseRepo, minioClient)
+	fileService := service.NewFileService(fileRepo, noteRepo, minioClient)
 	examPointService := service.NewExamPointService(examPointRepo, noteRepo, courseRepo, llmProvider)
 	noteAIService := service.NewNoteAIService(noteRepo, courseRepo, llmProvider)
 	wrongQuestionService := service.NewWrongQuestionService(wqRepo, noteRepo, minioClient, llmProvider)

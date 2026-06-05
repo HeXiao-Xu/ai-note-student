@@ -16,6 +16,16 @@ export async function createNote(courseId: number, data: CreateNoteRequest): Pro
   return res.data
 }
 
+export async function importDocument(courseId: number, file: File): Promise<Note> {
+  const formData = new FormData()
+  formData.append('file', file)
+  const res = await client.post<Note>(`/courses/${courseId}/notes/import`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 30000,
+  })
+  return res.data
+}
+
 export async function getNote(id: number): Promise<Note> {
   const res = await client.get<Note>(`/notes/${id}`)
   return res.data

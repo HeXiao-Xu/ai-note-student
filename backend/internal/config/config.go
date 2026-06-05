@@ -12,7 +12,6 @@ type Config struct {
 	Database DatabaseConfig `yaml:"database"`
 	JWT      JWTConfig      `yaml:"jwt"`
 	MinIO    MinIOConfig    `yaml:"minio"`
-	OCR      OCRConfig      `yaml:"ocr"`
 	LLM      LLMConfig      `yaml:"llm"`
 }
 
@@ -22,22 +21,6 @@ type MinIOConfig struct {
 	SecretKey string `yaml:"secret_key"`
 	Bucket    string `yaml:"bucket"`
 	UseSSL    bool   `yaml:"use_ssl"`
-}
-
-type OCRConfig struct {
-	Provider string         `yaml:"provider"`
-	Baidu    BaiduOCRConfig `yaml:"baidu"`
-	Mathpix  MathpixConfig  `yaml:"mathpix"`
-}
-
-type BaiduOCRConfig struct {
-	APIKey    string `yaml:"api_key"`
-	SecretKey string `yaml:"secret_key"`
-}
-
-type MathpixConfig struct {
-	AppID string `yaml:"app_id"`
-	AppKey string `yaml:"app_key"`
 }
 
 type ServerConfig struct {
@@ -121,18 +104,6 @@ func Load(path string) (*Config, error) {
 	}
 	if v := os.Getenv("MINIO_SECRET_KEY"); v != "" {
 		cfg.MinIO.SecretKey = v
-	}
-	if v := os.Getenv("BAIDU_OCR_API_KEY"); v != "" {
-		cfg.OCR.Baidu.APIKey = v
-	}
-	if v := os.Getenv("BAIDU_OCR_SECRET_KEY"); v != "" {
-		cfg.OCR.Baidu.SecretKey = v
-	}
-	if v := os.Getenv("MATHPIX_APP_ID"); v != "" {
-		cfg.OCR.Mathpix.AppID = v
-	}
-	if v := os.Getenv("MATHPIX_APP_KEY"); v != "" {
-		cfg.OCR.Mathpix.AppKey = v
 	}
 	if v := os.Getenv("LLM_PROVIDER"); v != "" {
 		cfg.LLM.Provider = v
