@@ -16,6 +16,8 @@ func Setup(
 	noteAIService *service.NoteAIService,
 	wrongQuestionService *service.WrongQuestionService,
 	reviewService *service.ReviewService,
+	knowledgeService *service.KnowledgeService,
+	qaService *service.QAService,
 ) *gin.Engine {
 	r := gin.Default()
 
@@ -29,6 +31,8 @@ func Setup(
 	noteAIHandler := handler.NewNoteAIHandler(noteAIService)
 	wrongQuestionHandler := handler.NewWrongQuestionHandler(wrongQuestionService)
 	reviewHandler := handler.NewReviewHandler(reviewService)
+	knowledgeHandler := handler.NewKnowledgeHandler(knowledgeService)
+	qaHandler := handler.NewQAHandler(qaService)
 
 	auth := r.Group("/api/auth")
 	{
@@ -98,6 +102,23 @@ func Setup(
 			reviews.GET("/stats", reviewHandler.GetStats)
 			reviews.GET("/detailed-stats", reviewHandler.GetDetailedStats)
 			reviews.POST("/:id/answer", reviewHandler.AnswerReview)
+		}
+
+		// Knowledge graph
+		knowledge := api.Group("/knowledge")
+		{
+			knowledge.GET("/entities", knowledgeHandler.ListEntities)
+			knowledge.POST("/entities/extract", knowledgeHandler.ExtractEntities)
+			knowledge.GET("/graph", knowledgeHandler.GetGraphData)
+			knowledge.POST("/relations", knowledgeHandler.AddRelation)
+			knowledge.GET("/related/:entityId", knowledgeHandler.GetRelatedEntities)
+		}
+
+		// QA
+		qa := api.Group("/qa")
+		{
+			qa.POST("/ask", qaHandler.Ask)
+			qa.GET("/history", qaHandler.GetHistory)
 		}
 	}
 

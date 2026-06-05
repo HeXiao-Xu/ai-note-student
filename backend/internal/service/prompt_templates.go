@@ -43,6 +43,46 @@ frequency 只能是：高频、中频、低频
 
 请按以下JSON格式输出分析结果（不要输出其他内容，不要用markdown代码块包裹）：
 {"root_cause":"根本原因分析","knowledge_gaps":["知识盲点1","知识盲点2"],"suggestion":"改进建议"}`
+
+	// PromptEntityExtract 实体提取提示词
+	PromptEntityExtract = `你是一位知识图谱构建专家。请从以下笔记内容中提取知识实体。
+
+课程名称：{{.CourseName}}
+笔记标题：{{.NoteTitle}}
+笔记内容：
+{{.NoteContent}}
+
+请按以下JSON格式输出实体列表（不要输出其他内容，不要用markdown代码块包裹）：
+[{"name":"实体名称","type":"concept","description":"实体描述"}]
+
+type 只能是：concept(概念)、definition(定义)、formula(公式)、theorem(定理)
+每个实体一条，尽量完整覆盖笔记中的知识点。相同名称的实体不要重复。`
+
+	// PromptRelationInfer 关系推断提示词
+	PromptRelationInfer = `你是一位知识图谱构建专家。请根据以下实体列表，推断实体之间的关系。
+
+实体列表：
+{{.Entities}}
+
+请按以下JSON格式输出关系列表（不要输出其他内容，不要用markdown代码块包裹）：
+[{"source":"源实体名称","target":"目标实体名称","type":"prerequisite"}]
+
+type 只能是：contains(包含)、prerequisite(前置依赖)、application(应用)
+只输出有明确依据的关系，不要推测不确定的关系。`
+
+	// PromptRAGQA RAG问答提示词
+	PromptRAGQA = `你是一位学习助手。请根据以下参考资料回答学生的问题。如果参考资料不足以回答，请根据你的知识补充，并说明哪些内容来自参考资料、哪些是你的补充。
+
+参考资料：
+{{.Context}}
+
+学生问题：{{.Question}}
+
+要求：
+1. 优先基于参考资料回答
+2. 回答要结构清晰，使用 Markdown 格式
+3. 如果参考资料不足，说明并补充
+4. 在回答末尾列出引用的笔记来源`
 )
 
 // PromptData provides template data for variable substitution

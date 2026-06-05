@@ -59,10 +59,11 @@ type JWTConfig struct {
 }
 
 type LLMConfig struct {
-	Provider  string          `yaml:"provider"`
-	Zhipu     ZhipuConfig     `yaml:"zhipu"`
-	OpenAI    OpenAIConfig    `yaml:"openai"`
-	DashScope DashScopeConfig `yaml:"dashscope"`
+	Provider       string          `yaml:"provider"`
+	EmbeddingModel string          `yaml:"embedding_model"`
+	Zhipu          ZhipuConfig     `yaml:"zhipu"`
+	OpenAI         OpenAIConfig    `yaml:"openai"`
+	DashScope      DashScopeConfig `yaml:"dashscope"`
 }
 
 type ZhipuConfig struct {
@@ -156,6 +157,9 @@ func Load(path string) (*Config, error) {
 	}
 	if v := os.Getenv("DASHSCOPE_MODEL"); v != "" {
 		cfg.LLM.DashScope.Model = v
+	}
+	if v := os.Getenv("EMBEDDING_MODEL"); v != "" {
+		cfg.LLM.EmbeddingModel = v
 	}
 
 	return &cfg, nil

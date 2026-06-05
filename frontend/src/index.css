@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap');
+@import "@uiw/react-md-editor/markdown-editor.css";
 
 @theme {
   /* Slate neutrals */
@@ -95,23 +96,47 @@ body {
   animation: slide-in-right 0.25s ease-out both;
 }
 
-/* Note editor */
-.note-editor {
-  background: transparent;
-  border: none;
-  resize: none;
-  outline: none;
+/* Note editor — Vditor overrides */
+.vditor {
+  border: none !important;
+  border-radius: 0 !important;
+}
+.vditor-toolbar {
+  border-bottom: 1px solid var(--color-slate-200) !important;
+  background: var(--color-slate-50) !important;
+  padding: 0 8px !important;
+}
+.vditor-reset {
+  font-family: var(--font-serif) !important;
+  font-size: 0.9375rem !important;
+  line-height: 1.85 !important;
+  color: var(--color-slate-800) !important;
+}
+.vditor-reset h1 { font-size: 1.75rem; font-weight: 700; margin: 1.5rem 0 0.75rem; color: var(--color-slate-900); }
+.vditor-reset h2 { font-size: 1.4rem; font-weight: 600; margin: 1.25rem 0 0.6rem; color: var(--color-slate-900); }
+.vditor-reset h3 { font-size: 1.15rem; font-weight: 600; margin: 1rem 0 0.5rem; color: var(--color-slate-900); }
+
+/* MDEditor read-only preview (kept for note view + QA page) */
+.w-md-editor-preview {
+  font-family: var(--font-serif) !important;
+  font-size: 0.9375rem !important;
+  line-height: 1.85 !important;
+  padding: 0 1.5rem !important;
+}
+.w-md-editor-preview h1 { font-size: 1.75rem; font-weight: 700; margin: 1.5rem 0 0.75rem; color: var(--color-slate-900); }
+.w-md-editor-preview h2 { font-size: 1.4rem; font-weight: 600; margin: 1.25rem 0 0.6rem; color: var(--color-slate-900); }
+.w-md-editor-preview h3 { font-size: 1.15rem; font-weight: 600; margin: 1rem 0 0.5rem; color: var(--color-slate-900); }
+
+/* Markdown read-only preview */
+.md-preview {
   font-family: var(--font-serif);
-  font-size: 1rem;
-  line-height: 1.8;
+  font-size: 0.9375rem;
+  line-height: 1.85;
   color: var(--color-slate-800);
-  width: 100%;
-  min-height: 60vh;
 }
-.note-editor::placeholder {
-  color: var(--color-slate-400);
-  font-style: italic;
-}
+.md-preview h1 { font-size: 1.75rem; font-weight: 700; margin: 1.5rem 0 0.75rem; color: var(--color-slate-900); }
+.md-preview h2 { font-size: 1.4rem; font-weight: 600; margin: 1.25rem 0 0.6rem; color: var(--color-slate-900); }
+.md-preview h3 { font-size: 1.15rem; font-weight: 600; margin: 1rem 0 0.5rem; color: var(--color-slate-900); }
 
 /* Card hover lift */
 .card-lift {

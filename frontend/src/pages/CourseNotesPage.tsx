@@ -1,4 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
+import MDEditor from '@uiw/react-md-editor'
+import VditorEditor from '../components/VditorEditor'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useNoteStore } from '../stores/noteStore'
 import { useCourseStore } from '../stores/courseStore'
@@ -231,11 +233,9 @@ export default function CourseNotesPage() {
               placeholder="笔记标题"
               className="w-full text-2xl font-bold border-none outline-none mb-6 placeholder:text-slate-300 text-slate-900 bg-transparent"
             />
-            <textarea
+            <VditorEditor
               value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="开始写作..."
-              className="note-editor"
+              onChange={(val) => setContent(val)}
             />
             <div className="mt-4">
               <input
@@ -261,10 +261,9 @@ export default function CourseNotesPage() {
                   onChange={(e) => handleTitleChange(e.target.value)}
                   className="w-full text-2xl font-bold border-none outline-none mb-6 text-slate-900 bg-transparent"
                 />
-                <textarea
+                <VditorEditor
                   value={content}
-                  onChange={(e) => handleContentChange(e.target.value)}
-                  className="note-editor"
+                  onChange={(val) => handleContentChange(val)}
                 />
                 <div className="mt-4">
                   <input
@@ -313,8 +312,12 @@ export default function CourseNotesPage() {
                     </div>
                   )}
                 </div>
-                <div className="font-serif text-[0.9375rem] leading-[1.85] text-slate-700 whitespace-pre-wrap">
-                  {currentNote.content || <span className="text-slate-300 italic">空内容</span>}
+                <div>
+                  {currentNote.content ? (
+                    <MDEditor.Markdown source={currentNote.content} />
+                  ) : (
+                    <span className="text-slate-300 italic">空内容</span>
+                  )}
                 </div>
 
                 {/* Attachments panel */}

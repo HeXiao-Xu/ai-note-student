@@ -28,6 +28,8 @@ func main() {
 	examPointRepo := repository.NewExamPointRepository(db)
 	wqRepo := repository.NewWrongQuestionRepository(db)
 	reviewPlanRepo := repository.NewReviewPlanRepository(db)
+	knowledgeRepo := repository.NewKnowledgeRepository(db)
+	qaRepo := repository.NewQARepository(db)
 
 	minioClient, err := service.NewMinIOClient(cfg.MinIO)
 	if err != nil {
@@ -45,13 +47,17 @@ func main() {
 
 	// Initialize LLM provider based on config
 	var llmProvider service.LLMProvider
+	var embeddingProvider service.EmbeddingProvider
 	switch cfg.LLM.Provider {
 	case "zhipu":
 		llmProvider = service.NewZhipuLLM(cfg.LLM.Zhipu)
+		embeddingProvider = service.NewZhipuEmbedding(cfg.LLM.Zhipu, cfg.LLM.EmbeddingModel)
 	case "openai":
 		llmProvider = service.NewOpenAILLM(cfg.LLM.OpenAI)
+		embeddingProvider = service.NewOpenAIEmbedding(cfg.LLM.OpenAI, cfg.LLM.EmbeddingModel)
 	case "dashscope":
 		llmProvider = service.NewDashScopeLLM(cfg.LLM.DashScope)
+		embeddingProvider = service.NewDashScopeEmbedding(cfg.LLM.DashScope, cfg.LLM.EmbeddingModel)
 	}
 
 	authService := service.NewAuthService(userRepo, cfg.JWT)
@@ -62,8 +68,10 @@ func main() {
 	noteAIService := service.NewNoteAIService(noteRepo, courseRepo, llmProvider)
 	wrongQuestionService := service.NewWrongQuestionService(wqRepo, noteRepo, minioClient, llmProvider)
 	reviewService := service.NewReviewService(reviewPlanRepo, examPointRepo, wqRepo, noteRepo)
+	knowledgeService := service.NewKnowledgeService(knowledgeRepo, noteRepo, courseRepo, llmProvider, embeddingProvider)
+	qaService := service.NewQAService(qaRepo, noteRepo, knowledgeRepo, llmProvider, embeddingProvider)
 
-	engine := router.Setup(authService, courseService, noteService, fileService, examPointService, noteAIService, wrongQuestionService, reviewService)
+	engine := router.Setup(authService, courseService, noteService, fileService, examPointService, noteAIService, wrongQuestionService, reviewService, knowledgeService, qaService)
 
 	log.Printf("Server starting on :%s", cfg.Server.Port)
 	if err := engine.Run(":" + cfg.Server.Port); err != nil {

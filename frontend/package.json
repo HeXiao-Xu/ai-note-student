@@ -11,12 +11,16 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.0",
+    "@uiw/react-md-editor": "^4.1.1",
     "axios": "^1.16.1",
+    "echarts": "^6.1.0",
+    "echarts-for-react": "^3.0.6",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.15.1",
     "recharts": "^3.8.1",
     "tailwindcss": "^4.3.0",
+    "vditor": "^3.11.2",
     "zustand": "^5.0.13"
   },
   "devDependencies": {

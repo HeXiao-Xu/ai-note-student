@@ -16,6 +16,8 @@ import SearchPage from './pages/SearchPage'
 import WrongQuestionsPage from './pages/WrongQuestionsPage'
 import ReviewPage from './pages/ReviewPage'
 import ReviewStatsPage from './pages/ReviewStatsPage'
+import KnowledgeGraphPage from './pages/KnowledgeGraphPage'
+import QAPage from './pages/QAPage'
 
 function App() {
   const initAuth = useAuthStore((s) => s.initAuth)
@@ -42,6 +44,8 @@ function App() {
           <Route path="/wrong-questions" element={<WrongQuestionsPage />} />
           <Route path="/review" element={<ReviewPage />} />
           <Route path="/review/stats" element={<ReviewStatsPage />} />
+          <Route path="/knowledge-graph" element={<KnowledgeGraphPage />} />
+          <Route path="/qa" element={<QAPage />} />
         </Route>
 
         {/* Default redirect */}

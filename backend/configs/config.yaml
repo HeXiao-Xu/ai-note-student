@@ -31,6 +31,7 @@ ocr:
 
 llm:
   provider: "zhipu"
+  embedding_model: "embedding-3"
   zhipu:
     api_key: ""
     model: "glm-4-flash"
