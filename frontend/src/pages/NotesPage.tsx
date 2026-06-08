@@ -4,19 +4,14 @@ import MDEditor from '@uiw/react-md-editor'
 import VditorEditor from '../components/VditorEditor'
 import { useNoteStore } from '../stores/noteStore'
 import { useCourseStore } from '../stores/courseStore'
-import { useFileStore } from '../stores/fileStore'
-import FileUploader from '../components/FileUploader'
-import FileList from '../components/FileList'
 import ExamPointPanel from '../components/ExamPointPanel'
 import QuickNotesModal from '../components/QuickNotesModal'
 import * as noteAiApi from '../api/noteAi'
-import type { FileAttachment } from '../types/file'
 import type { QuickNotesResponse } from '../types/review'
 
 export default function NotesPage() {
   const { notes, currentNote, loading, fetchAllNotes, fetchNote, createNote, importDocument, updateNote, deleteNote, setCurrentNote } = useNoteStore()
   const { courses } = useCourseStore()
-  const { files: attachments, fetchFiles, uploadFile, deleteFile: removeFile } = useFileStore()
   const [isEditing, setIsEditing] = useState(false)
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
@@ -25,7 +20,7 @@ export default function NotesPage() {
   const [newCourseId, setNewCourseId] = useState<number>(0)
   const [saveTimer, setSaveTimer] = useState<ReturnType<typeof setTimeout> | null>(null)
   const [saving, setSaving] = useState(false)
-  const [activeTab, setActiveTab] = useState<'content' | 'exam' | 'files'>('content')
+  const [activeTab, setActiveTab] = useState<'content' | 'exam'>('content')
   const [quickNotes, setQuickNotes] = useState<QuickNotesResponse | null>(null)
   const [generatingQuickNotes, setGeneratingQuickNotes] = useState(false)
   const [savingQuickNotes, setSavingQuickNotes] = useState(false)
@@ -55,7 +50,6 @@ export default function NotesPage() {
     setShowNewNote(false)
     setIsEditing(false)
     setActiveTab('content')
-    fetchFiles(id)
   }
 
   const handleNewNote = () => {
@@ -176,12 +170,6 @@ export default function NotesPage() {
       fetchAllNotes()
     } finally {
       setSavingQuickNotes(false)
-    }
-  }
-
-  const handlePreviewFile = (file: FileAttachment) => {
-    if (file.file_type === 'pdf') {
-      window.open(`/api/files/${file.id}/download`, '_blank')
     }
   }
 
@@ -401,7 +389,10 @@ export default function NotesPage() {
                   <div className="flex items-center gap-2 shrink-0 ml-4">
                     {currentNote.file_type && (
                       <button
-                        onClick={() => window.open(`/api/notes/${currentNote.id}/document`, '_blank')}
+                        onClick={() => {
+                          const token = localStorage.getItem('access_token')
+                          window.open(`/api/notes/${currentNote.id}/document?token=${token}`, '_blank')
+                        }}
                         className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-indigo-50 text-indigo-600 border border-indigo-200 rounded-md hover:bg-indigo-100 transition-colors font-medium"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -447,9 +438,8 @@ export default function NotesPage() {
                 {/* Tabs */}
                 <div className="flex gap-1 border-b border-slate-200 mb-5">
                   {([
-                    { key: 'content', label: currentNote.file_type ? '笔记内容' : '笔记内容' },
+                    { key: 'content', label: '笔记内容' },
                     { key: 'exam', label: '考点分析' },
-                    { key: 'files', label: `附件 (${attachments.length})` },
                   ] as const).map((tab) => (
                     <button
                       key={tab.key}
@@ -479,7 +469,10 @@ export default function NotesPage() {
                             </div>
                           </div>
                           <button
-                            onClick={() => window.open(`/api/notes/${currentNote.id}/document`, '_blank')}
+                            onClick={() => {
+                          const token = localStorage.getItem('access_token')
+                          window.open(`/api/notes/${currentNote.id}/document?token=${token}`, '_blank')
+                        }}
                             className="px-3 py-1.5 text-xs font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
                           >
                             打开文档
@@ -504,17 +497,6 @@ export default function NotesPage() {
                 {activeTab === 'exam' && (
                   <div className="animate-fade-in">
                     <ExamPointPanel noteId={currentNote.id} />
-                  </div>
-                )}
-
-                {activeTab === 'files' && (
-                  <div className="space-y-3 animate-fade-in">
-                    <FileList
-                      files={attachments}
-                      onDelete={removeFile}
-                      onPreview={handlePreviewFile}
-                    />
-                    <FileUploader onUpload={(file) => uploadFile(currentNote.id, file)} />
                   </div>
                 )}
               </>
