@@ -16,11 +16,14 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /server ./cmd/server
 # Runtime stage - use Debian for LibreOffice compatibility
 FROM swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/debian:bookworm-slim
 
-# Install LibreOffice (headless), poppler-utils (pdftotext), and other dependencies
+# Install LibreOffice (headless), poppler-utils (pdftotext), Chinese fonts, and other dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
 		libreoffice-writer \
 		libreoffice-impress \
 		poppler-utils \
+		fonts-noto-cjk \
+		fonts-wqy-zenhei \
+		fonts-wqy-microhei \
 		ca-certificates \
 	&& rm -rf /var/lib/apt/lists/*
 
