@@ -53,7 +53,9 @@ func main() {
 
 	authService := service.NewAuthService(userRepo, cfg.JWT)
 	courseService := service.NewCourseService(courseRepo, noteRepo)
-	noteService := service.NewNoteService(noteRepo, courseRepo, minioClient)
+	docConverter := service.NewDocumentConverter("")   // auto-detect LibreOffice
+	textExtractor := service.NewTextExtractor("")       // auto-detect pdftotext
+	noteService := service.NewNoteService(noteRepo, courseRepo, minioClient, docConverter, textExtractor)
 	fileService := service.NewFileService(fileRepo, noteRepo, minioClient)
 	examPointService := service.NewExamPointService(examPointRepo, noteRepo, courseRepo, llmProvider)
 	noteAIService := service.NewNoteAIService(noteRepo, courseRepo, llmProvider)

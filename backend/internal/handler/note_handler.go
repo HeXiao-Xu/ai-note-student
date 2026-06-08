@@ -243,3 +243,33 @@ func (h *NoteHandler) DownloadDocument(c *gin.Context) {
 	c.Header("Content-Type", contentType)
 	c.DataFromReader(http.StatusOK, -1, contentType, obj, nil)
 }
+
+// PreviewDocument serves the PDF preview version of a document
+func (h *NoteHandler) PreviewDocument(c *gin.Context) {
+	userID := c.GetUint("user_id")
+	noteID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid note id"})
+		return
+	}
+
+	obj, note, err := h.noteService.PreviewDocument(c.Request.Context(), userID, uint(noteID))
+	if err != nil {
+		if err.Error() == "note not found" {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		if err.Error() == "permission denied" {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer obj.Close()
+
+	fileName := note.Title + ".pdf"
+	c.Header("Content-Disposition", "inline; filename=\""+fileName+"\"")
+	c.Header("Content-Type", "application/pdf")
+	c.DataFromReader(http.StatusOK, -1, "application/pdf", obj, nil)
+}

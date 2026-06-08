@@ -61,6 +61,7 @@ func Setup(
 			notes.GET("/search", noteHandler.Search)
 			notes.GET("/:id", noteHandler.Get)
 			notes.GET("/:id/document", noteHandler.DownloadDocument)
+			notes.GET("/:id/preview", noteHandler.PreviewDocument)
 			notes.PUT("/:id", noteHandler.Update)
 			notes.DELETE("/:id", noteHandler.Delete)
 

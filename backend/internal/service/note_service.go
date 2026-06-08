@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -15,13 +16,27 @@ import (
 )
 
 type NoteService struct {
-	noteRepo   *repository.NoteRepository
-	courseRepo *repository.CourseRepository
-	minio      *MinIOClient
+	noteRepo      *repository.NoteRepository
+	courseRepo    *repository.CourseRepository
+	minio         *MinIOClient
+	docConverter  *DocumentConverter
+	textExtractor *TextExtractor
 }
 
-func NewNoteService(noteRepo *repository.NoteRepository, courseRepo *repository.CourseRepository, minio *MinIOClient) *NoteService {
-	return &NoteService{noteRepo: noteRepo, courseRepo: courseRepo, minio: minio}
+func NewNoteService(
+	noteRepo *repository.NoteRepository,
+	courseRepo *repository.CourseRepository,
+	minio *MinIOClient,
+	docConverter *DocumentConverter,
+	textExtractor *TextExtractor,
+) *NoteService {
+	return &NoteService{
+		noteRepo:      noteRepo,
+		courseRepo:    courseRepo,
+		minio:         minio,
+		docConverter:  docConverter,
+		textExtractor: textExtractor,
+	}
 }
 
 type CreateNoteRequest struct {
@@ -69,11 +84,61 @@ func (s *NoteService) ImportDocument(ctx context.Context, userID uint, courseID 
 		fileType = "docx"
 	}
 
-	// Upload to MinIO: imports/{user_id}/{course_id}/{uuid}.{ext}
+	// Save uploaded file to temp file for processing
+	tmpFile, err := os.CreateTemp("", "import_*"+ext)
+	if err != nil {
+		return nil, fmt.Errorf("create temp file: %w", err)
+	}
+	tmpFilePath := tmpFile.Name()
+	defer os.Remove(tmpFilePath)
+
+	if _, err := io.Copy(tmpFile, reader); err != nil {
+		tmpFile.Close()
+		return nil, fmt.Errorf("write temp file: %w", err)
+	}
+	tmpFile.Close()
+
+	// Upload original file to MinIO: imports/{user_id}/{course_id}/{uuid}.{ext}
 	objectKey := fmt.Sprintf("imports/%d/%d/%s%s", userID, courseID, uuid.New().String(), ext)
 	contentType := contentTypeForExt(ext)
-	if err := s.minio.Upload(ctx, objectKey, reader, fileSize, contentType); err != nil {
+
+	// Re-open temp file for upload
+	uploadFile, err := os.Open(tmpFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("open temp file for upload: %w", err)
+	}
+	if err := s.minio.Upload(ctx, objectKey, uploadFile, fileSize, contentType); err != nil {
+		uploadFile.Close()
 		return nil, fmt.Errorf("upload to storage: %w", err)
+	}
+	uploadFile.Close()
+
+	// For PPTX/DOCX, convert to PDF for preview
+	var pdfObjectKey string
+	if ext != ".pdf" && s.docConverter != nil && s.docConverter.IsAvailable() {
+		pdfPath, err := s.docConverter.ConvertToPDF(ctx, tmpFilePath, ext)
+		if err == nil {
+			defer os.RemoveAll(filepath.Dir(pdfPath)) // Clean up temp dir
+			// Upload PDF to MinIO
+			pdfObjectKey = fmt.Sprintf("imports/%d/%d/%s.pdf", userID, courseID, uuid.New().String())
+			pdfFile, err := os.Open(pdfPath)
+			if err == nil {
+				pdfStat, _ := pdfFile.Stat()
+				if err := s.minio.Upload(ctx, pdfObjectKey, pdfFile, pdfStat.Size(), "application/pdf"); err != nil {
+					pdfObjectKey = "" // Reset if upload fails
+				}
+				pdfFile.Close()
+			}
+		}
+	}
+
+	// Extract text content for RAG
+	var fileContent string
+	if s.textExtractor != nil {
+		text, err := s.textExtractor.ExtractFromFile(ctx, tmpFilePath, ext)
+		if err == nil && text != "" {
+			fileContent = text
+		}
 	}
 
 	// Create note with file info
@@ -84,10 +149,15 @@ func (s *NoteService) ImportDocument(ctx context.Context, userID uint, courseID 
 		Title:         title,
 		FileType:      fileType,
 		FileObjectKey: objectKey,
+		PdfObjectKey:  pdfObjectKey,
+		FileContent:   fileContent,
 		Tags:          model.StringList{},
 	}
 	if err := s.noteRepo.Create(note); err != nil {
 		_ = s.minio.Delete(ctx, objectKey)
+		if pdfObjectKey != "" {
+			_ = s.minio.Delete(ctx, pdfObjectKey)
+		}
 		return nil, err
 	}
 
@@ -207,6 +277,29 @@ func (s *NoteService) DownloadDocument(ctx context.Context, userID uint, noteID 
 		return nil, nil, errors.New("note has no document")
 	}
 	obj, err := s.minio.Download(ctx, note.FileObjectKey)
+	if err != nil {
+		return nil, nil, fmt.Errorf("download from storage: %w", err)
+	}
+	return obj, note, nil
+}
+
+// PreviewDocument returns PDF for preview (uses converted PDF for PPTX/DOCX)
+func (s *NoteService) PreviewDocument(ctx context.Context, userID uint, noteID uint) (io.ReadCloser, *model.Note, error) {
+	note, err := s.Get(userID, noteID)
+	if err != nil {
+		return nil, nil, err
+	}
+	if note.FileObjectKey == "" {
+		return nil, nil, errors.New("note has no document")
+	}
+
+	// For PPTX/DOCX with converted PDF, serve the PDF version
+	objectKey := note.FileObjectKey
+	if note.PdfObjectKey != "" {
+		objectKey = note.PdfObjectKey
+	}
+
+	obj, err := s.minio.Download(ctx, objectKey)
 	if err != nil {
 		return nil, nil, fmt.Errorf("download from storage: %w", err)
 	}

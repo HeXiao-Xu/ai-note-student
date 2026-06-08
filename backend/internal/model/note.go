@@ -18,6 +18,8 @@ type Note struct {
 	IsExamFocus   bool             `gorm:"default:false" json:"is_exam_focus"`
 	FileType      string           `gorm:"size:20;default:''" json:"file_type"`
 	FileObjectKey string           `gorm:"size:500;default:''" json:"file_object_key"`
+	PdfObjectKey  string           `gorm:"size:500;default:''" json:"pdf_object_key"` // PDF preview version for PPTX/DOCX
+	FileContent   string           `gorm:"type:text" json:"file_content"`             // Extracted text for RAG
 	Embedding     *pgvector.Vector `gorm:"type:vector(1024)" json:"-"`
 	CreatedAt     time.Time        `json:"created_at"`
 	UpdatedAt     time.Time        `json:"updated_at"`
