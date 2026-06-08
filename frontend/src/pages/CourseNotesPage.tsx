@@ -296,7 +296,7 @@ export default function CourseNotesPage() {
                     <h1 className="text-2xl font-bold text-slate-900">{currentNote.title}</h1>
                   </div>
                   <div className="flex items-center gap-1 shrink-0 ml-4">
-                    {currentNote.file_type && (
+                    {currentNote.file_type === 'pdf' && (
                       <button
                         onClick={() => {
                           const token = localStorage.getItem('access_token')
@@ -309,6 +309,23 @@ export default function CourseNotesPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                         查看文档
+                      </button>
+                    )}
+                    {currentNote.file_type && currentNote.file_type !== 'pdf' && (
+                      <button
+                        onClick={() => {
+                          const token = localStorage.getItem('access_token')
+                          const a = document.createElement('a')
+                          a.href = `/api/notes/${currentNote.id}/document?token=${token}`
+                          a.download = currentNote.title + '.' + currentNote.file_type
+                          a.click()
+                        }}
+                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-md hover:bg-emerald-100 transition-colors font-medium"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                        </svg>
+                        下载文档
                       </button>
                     )}
                     <button onClick={handleEditNote} className="p-2 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" title="编辑">
@@ -342,15 +359,30 @@ export default function CourseNotesPage() {
                           <div className="text-sm font-medium text-slate-700">{currentNote.title}</div>
                           <div className="text-xs text-slate-400 mt-0.5">{currentNote.file_type.toUpperCase()} 文档</div>
                         </div>
-                        <button
-                          onClick={() => {
-                            const token = localStorage.getItem('access_token')
-                            window.open(`/api/notes/${currentNote.id}/document?token=${token}`, '_blank')
-                          }}
-                          className="px-3 py-1.5 text-xs font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
-                        >
-                          打开文档
-                        </button>
+                        {currentNote.file_type === 'pdf' ? (
+                          <button
+                            onClick={() => {
+                              const token = localStorage.getItem('access_token')
+                              window.open(`/api/notes/${currentNote.id}/document?token=${token}`, '_blank')
+                            }}
+                            className="px-3 py-1.5 text-xs font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+                          >
+                            查看文档
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              const token = localStorage.getItem('access_token')
+                              const a = document.createElement('a')
+                              a.href = `/api/notes/${currentNote.id}/document?token=${token}`
+                              a.download = currentNote.title + '.' + currentNote.file_type
+                              a.click()
+                            }}
+                            className="px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors"
+                          >
+                            下载文档
+                          </button>
+                        )}
                       </div>
                       {currentNote.content ? (
                         <MDEditor.Markdown source={currentNote.content} />
