@@ -389,36 +389,38 @@ export default function NotesPage() {
                   <div className="flex items-center gap-2 shrink-0 ml-4">
                     {currentNote.file_type && (
                       <>
-                        <button
-                          onClick={() => {
-                            const token = localStorage.getItem('access_token')
-                            window.open(`/api/notes/${currentNote.id}/preview?token=${token}`, '_blank')
-                          }}
-                          className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-indigo-50 text-indigo-600 border border-indigo-200 rounded-md hover:bg-indigo-100 transition-colors font-medium"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                          查看文档
-                        </button>
-                        {currentNote.file_type !== 'pdf' && (
+                        {/* Preview button: only for PDF or documents with converted PDF version */}
+                        {(currentNote.file_type === 'pdf' || currentNote.pdf_object_key) && (
                           <button
                             onClick={() => {
                               const token = localStorage.getItem('access_token')
-                              const a = document.createElement('a')
-                              a.href = `/api/notes/${currentNote.id}/document?token=${token}`
-                              a.download = currentNote.title + '.' + currentNote.file_type
-                              a.click()
+                              window.open(`/api/notes/${currentNote.id}/preview?token=${token}`, '_blank')
                             }}
-                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-md hover:bg-emerald-100 transition-colors font-medium"
+                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-indigo-50 text-indigo-600 border border-indigo-200 rounded-md hover:bg-indigo-100 transition-colors font-medium"
                           >
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
-                            下载原文件
+                            查看文档
                           </button>
                         )}
+                        {/* Download button: for all documents */}
+                        <button
+                          onClick={() => {
+                            const token = localStorage.getItem('access_token')
+                            const a = document.createElement('a')
+                            a.href = `/api/notes/${currentNote.id}/document?token=${token}`
+                            a.download = currentNote.title + '.' + currentNote.file_type
+                            a.click()
+                          }}
+                          className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-md hover:bg-emerald-100 transition-colors font-medium"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                          </svg>
+                          下载文档
+                        </button>
                       </>
                     )}
                     <button
@@ -487,29 +489,29 @@ export default function NotesPage() {
                               {currentNote.file_type.toUpperCase()} 文档
                             </div>
                           </div>
-                          <button
-                            onClick={() => {
-                              const token = localStorage.getItem('access_token')
-                              window.open(`/api/notes/${currentNote.id}/preview?token=${token}`, '_blank')
-                            }}
-                            className="px-3 py-1.5 text-xs font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
-                          >
-                            查看文档
-                          </button>
-                          {currentNote.file_type !== 'pdf' && (
+                          {(currentNote.file_type === 'pdf' || currentNote.pdf_object_key) && (
                             <button
                               onClick={() => {
                                 const token = localStorage.getItem('access_token')
-                                const a = document.createElement('a')
-                                a.href = `/api/notes/${currentNote.id}/document?token=${token}`
-                                a.download = currentNote.title + '.' + currentNote.file_type
-                                a.click()
+                                window.open(`/api/notes/${currentNote.id}/preview?token=${token}`, '_blank')
                               }}
-                              className="px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors"
+                              className="px-3 py-1.5 text-xs font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
                             >
-                              下载原文件
+                              查看文档
                             </button>
                           )}
+                          <button
+                            onClick={() => {
+                              const token = localStorage.getItem('access_token')
+                              const a = document.createElement('a')
+                              a.href = `/api/notes/${currentNote.id}/document?token=${token}`
+                              a.download = currentNote.title + '.' + currentNote.file_type
+                              a.click()
+                            }}
+                            className="px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors"
+                          >
+                            下载文档
+                          </button>
                         </div>
                         {currentNote.content ? (
                           <MDEditor.Markdown source={currentNote.content} />

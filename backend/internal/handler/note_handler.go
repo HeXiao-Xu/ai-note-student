@@ -268,8 +268,20 @@ func (h *NoteHandler) PreviewDocument(c *gin.Context) {
 	}
 	defer obj.Close()
 
-	fileName := note.Title + ".pdf"
-	c.Header("Content-Disposition", "inline; filename=\""+fileName+"\"")
-	c.Header("Content-Type", "application/pdf")
-	c.DataFromReader(http.StatusOK, -1, "application/pdf", obj, nil)
+	// Determine if we can serve PDF preview
+	// PDF notes always work; PPTX/DOCX only work if PDF version exists
+	if note.FileType == "pdf" || note.PdfObjectKey != "" {
+		fileName := note.Title + ".pdf"
+		c.Header("Content-Disposition", "inline; filename=\""+fileName+"\"")
+		c.Header("Content-Type", "application/pdf")
+		c.DataFromReader(http.StatusOK, -1, "application/pdf", obj, nil)
+	} else {
+		// No PDF version available for PPTX/DOCX, return as download
+		ext := "." + note.FileType
+		contentType := "application/octet-stream"
+		fileName := note.Title + ext
+		c.Header("Content-Disposition", "attachment; filename=\""+fileName+"\"")
+		c.Header("Content-Type", contentType)
+		c.DataFromReader(http.StatusOK, -1, contentType, obj, nil)
+	}
 }

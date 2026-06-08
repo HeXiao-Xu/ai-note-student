@@ -8,6 +8,8 @@ export interface Note {
   is_exam_focus: boolean
   file_type: string
   file_object_key: string
+  pdf_object_key: string
+  file_content: string
   created_at: string
   updated_at: string
 }
