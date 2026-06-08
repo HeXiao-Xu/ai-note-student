@@ -41,7 +41,6 @@ export default function CourseNotesPage() {
   const handleSelectNote = async (id: number) => {
     await fetchNote(id)
     setShowNewNote(false)
-    setShowAttachments(true)
   }
 
   const handleNewNote = () => {
@@ -129,12 +128,6 @@ export default function CourseNotesPage() {
       alert('导入失败，请重试')
     } finally {
       setImporting(false)
-    }
-  }
-
-  const handlePreviewFile = (file: FileAttachment) => {
-    if (file.file_type === 'pdf') {
-      window.open(`/api/files/${file.id}/download`, '_blank')
     }
   }
 
