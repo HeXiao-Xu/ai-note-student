@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import * as qaApi from '../api/qa'
-import type { QAConversation, QASession, AskResult, SourceNote, SourceEntity } from '../types/qa'
+import type { QASession, AskResult, SourceNote, SourceEntity } from '../types/qa'
 
 interface ChatMessage {
   id: string
