@@ -92,7 +92,11 @@ func (s *ExamPointService) Analyze(ctx context.Context, userID uint, noteID uint
 		return nil, errors.New("permission denied")
 	}
 
-	if note.Content == "" {
+	noteContent := note.Content
+	if noteContent == "" {
+		noteContent = note.FileContent
+	}
+	if noteContent == "" {
 		return nil, errors.New("note content is empty, cannot analyze")
 	}
 
@@ -107,9 +111,9 @@ func (s *ExamPointService) Analyze(ctx context.Context, userID uint, noteID uint
 
 	// Render prompt
 	prompt := RenderPrompt(PromptExamPointAnalysis, PromptData{
-		"CourseName": courseName,
-		"NoteTitle":  note.Title,
-		"NoteContent": note.Content,
+		"CourseName":  courseName,
+		"NoteTitle":   note.Title,
+		"NoteContent": noteContent,
 	})
 
 	// Call LLM

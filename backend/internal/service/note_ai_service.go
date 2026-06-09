@@ -38,7 +38,11 @@ func (s *NoteAIService) GenerateQuickNotes(ctx context.Context, userID uint, not
 		return nil, errors.New("permission denied")
 	}
 
-	if note.Content == "" {
+	noteContent := note.Content
+	if noteContent == "" {
+		noteContent = note.FileContent
+	}
+	if noteContent == "" {
 		return nil, errors.New("note content is empty, cannot generate quick notes")
 	}
 
@@ -55,7 +59,7 @@ func (s *NoteAIService) GenerateQuickNotes(ctx context.Context, userID uint, not
 	prompt := RenderPrompt(PromptQuickNotes, PromptData{
 		"CourseName":  courseName,
 		"NoteTitle":   note.Title,
-		"NoteContent": note.Content,
+		"NoteContent": noteContent,
 	})
 
 	// Call LLM

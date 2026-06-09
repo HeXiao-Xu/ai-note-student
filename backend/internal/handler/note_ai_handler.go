@@ -2,7 +2,6 @@ package handler
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/ai-note-student/backend/internal/service"
 	"github.com/gin-gonic/gin"
@@ -18,13 +17,16 @@ func NewNoteAIHandler(noteAIService *service.NoteAIService) *NoteAIHandler {
 
 func (h *NoteAIHandler) GenerateQuickNotes(c *gin.Context) {
 	userID := c.GetUint("user_id")
-	noteID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid note id"})
+
+	var req struct {
+		NoteID uint `json:"note_id" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "note_id is required"})
 		return
 	}
 
-	result, err := h.noteAIService.GenerateQuickNotes(c.Request.Context(), userID, uint(noteID))
+	result, err := h.noteAIService.GenerateQuickNotes(c.Request.Context(), userID, req.NoteID)
 	if err != nil {
 		if err.Error() == "note not found" {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})

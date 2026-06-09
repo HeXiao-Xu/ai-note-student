@@ -37,15 +37,16 @@ func NewQAService(
 
 // AskResult is the result of a RAG QA query
 type AskResult struct {
-	Answer        string            `json:"answer"`
-	SourceNotes   []SourceNote      `json:"source_notes"`
-	SourceEntities []SourceEntity   `json:"source_entities"`
+	Answer         string         `json:"answer"`
+	SourceNotes    []SourceNote   `json:"source_notes"`
+	SourceEntities []SourceEntity `json:"source_entities"`
+	SessionID      uint           `json:"session_id"`
 }
 
 type SourceNote struct {
-	ID          uint    `json:"id"`
-	Title       string  `json:"title"`
-	Relevance   float64 `json:"relevance"`
+	ID        uint    `json:"id"`
+	Title     string  `json:"title"`
+	Relevance float64 `json:"relevance"`
 }
 
 type SourceEntity struct {
@@ -55,10 +56,36 @@ type SourceEntity struct {
 }
 
 // Ask performs RAG-based question answering
-func (s *QAService) Ask(userID uint, question string, courseID uint) (*AskResult, error) {
+func (s *QAService) Ask(userID uint, question string, courseID uint, sessionID uint) (*AskResult, error) {
 	var contextParts []string
 	var sourceNotes []SourceNote
 	var sourceEntities []SourceEntity
+
+	// Create or validate session
+	if sessionID == 0 {
+		// Create new session
+		title := question
+		if len(title) > 30 {
+			title = title[:30] + "..."
+		}
+		session := &model.QASession{
+			UserID:   userID,
+			CourseID: courseID,
+			Title:    title,
+		}
+		if err := s.qaRepo.CreateSession(session); err != nil {
+			return nil, fmt.Errorf("failed to create session: %w", err)
+		}
+		sessionID = session.ID
+	} else {
+		// Validate session ownership
+		session, err := s.qaRepo.FindSessionByID(sessionID)
+		if err != nil || session.UserID != userID {
+			return nil, fmt.Errorf("session not found or permission denied")
+		}
+		// Update session timestamp
+		s.qaRepo.UpdateSession(session)
+	}
 
 	// Step 1: Generate embedding for the question
 	embeddings, embErr := s.embeddingProvider.Embed(context.Background(), []string{question})
@@ -76,7 +103,11 @@ func (s *QAService) Ask(userID uint, question string, courseID uint) (*AskResult
 				if courseID > 0 && nr.CourseID != courseID {
 					continue
 				}
-				contextParts = append(contextParts, fmt.Sprintf("【笔记: %s】\n%s", nr.Title, truncateContent(nr.Content, 500)))
+				content := nr.Content
+				if content == "" {
+					content = nr.FileContent
+				}
+				contextParts = append(contextParts, fmt.Sprintf("【笔记: %s】\n%s", nr.Title, truncateContent(content, 500)))
 				sourceNotes = append(sourceNotes, SourceNote{
 					ID:        nr.ID,
 					Title:     nr.Title,
@@ -126,12 +157,21 @@ func (s *QAService) Ask(userID uint, question string, courseID uint) (*AskResult
 	for i, sn := range sourceNotes {
 		sourceNoteIDs[i] = int(sn.ID)
 	}
+
+	// Build source info for frontend display
+	sourceInfo := model.JSONMap{
+		"source_notes":    sourceNotes,
+		"source_entities": sourceEntities,
+	}
+
 	conversation := model.QAConversation{
 		UserID:        userID,
+		SessionID:     sessionID,
 		CourseID:      courseID,
 		Question:      question,
 		Answer:        answer,
 		SourceNoteIDs: sourceNoteIDs,
+		SourceInfo:    sourceInfo,
 	}
 	s.qaRepo.Create(&conversation)
 
@@ -139,12 +179,41 @@ func (s *QAService) Ask(userID uint, question string, courseID uint) (*AskResult
 		Answer:         answer,
 		SourceNotes:    sourceNotes,
 		SourceEntities: sourceEntities,
+		SessionID:      sessionID,
 	}, nil
 }
 
-// GetHistory returns QA conversation history
-func (s *QAService) GetHistory(userID uint, courseID uint) ([]model.QAConversation, error) {
-	return s.qaRepo.FindByUserID(userID, courseID)
+// ListSessions returns QA sessions for a user
+func (s *QAService) ListSessions(userID uint, courseID uint) ([]model.QASession, error) {
+	return s.qaRepo.FindSessionsByUserID(userID, courseID)
+}
+
+// GetSessionMessages returns all conversations in a session
+func (s *QAService) GetSessionMessages(sessionID uint, userID uint) ([]model.QAConversation, error) {
+	session, err := s.qaRepo.FindSessionByID(sessionID)
+	if err != nil || session.UserID != userID {
+		return nil, fmt.Errorf("session not found or permission denied")
+	}
+	return s.qaRepo.FindBySessionID(sessionID)
+}
+
+// DeleteSession deletes a session and all its conversations
+func (s *QAService) DeleteSession(sessionID uint, userID uint) error {
+	session, err := s.qaRepo.FindSessionByID(sessionID)
+	if err != nil || session.UserID != userID {
+		return fmt.Errorf("session not found or permission denied")
+	}
+	return s.qaRepo.DeleteSession(sessionID)
+}
+
+// RenameSession renames a session
+func (s *QAService) RenameSession(sessionID uint, userID uint, title string) error {
+	session, err := s.qaRepo.FindSessionByID(sessionID)
+	if err != nil || session.UserID != userID {
+		return fmt.Errorf("session not found or permission denied")
+	}
+	session.Title = title
+	return s.qaRepo.UpdateSession(session)
 }
 
 // generateMissingEmbeddings lazily generates embeddings for notes that don't have them
@@ -161,7 +230,11 @@ func (s *QAService) generateMissingEmbeddings(userID uint) {
 
 	texts := make([]string, len(notes))
 	for i, n := range notes {
-		texts[i] = n.Title + ": " + truncateContent(n.Content, 500)
+		content := n.Content
+		if content == "" {
+			content = n.FileContent
+		}
+		texts[i] = n.Title + ": " + truncateContent(content, 500)
 	}
 
 	embeddings, err := s.embeddingProvider.Embed(context.Background(), texts)

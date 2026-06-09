@@ -90,7 +90,7 @@ type NoteWithScore struct {
 func (r *NoteRepository) SearchByEmbedding(userID uint, embedding pgvector.Vector, limit int) ([]NoteWithScore, error) {
 	var results []NoteWithScore
 	rows, err := r.db.Raw(`
-		SELECT id, user_id, course_id, title, content, tags, is_exam_focus, created_at, updated_at,
+		SELECT id, user_id, course_id, title, content, file_content, tags, is_exam_focus, created_at, updated_at,
 		       1 - (embedding <=> ?) AS score
 		FROM notes
 		WHERE user_id = ? AND embedding IS NOT NULL
@@ -103,7 +103,7 @@ func (r *NoteRepository) SearchByEmbedding(userID uint, embedding pgvector.Vecto
 	defer rows.Close()
 	for rows.Next() {
 		var n NoteWithScore
-		rows.Scan(&n.ID, &n.UserID, &n.CourseID, &n.Title, &n.Content, &n.Tags, &n.IsExamFocus, &n.CreatedAt, &n.UpdatedAt, &n.Score)
+		rows.Scan(&n.ID, &n.UserID, &n.CourseID, &n.Title, &n.Content, &n.FileContent, &n.Tags, &n.IsExamFocus, &n.CreatedAt, &n.UpdatedAt, &n.Score)
 		results = append(results, n)
 	}
 	return results, nil
