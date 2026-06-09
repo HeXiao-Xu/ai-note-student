@@ -14,18 +14,20 @@ import (
 )
 
 type WrongQuestionService struct {
-	wqRepo      *repository.WrongQuestionRepository
-	noteRepo    *repository.NoteRepository
-	minio       *MinIOClient
-	llmProvider LLMProvider
+	wqRepo        *repository.WrongQuestionRepository
+	noteRepo      *repository.NoteRepository
+	minio         *MinIOClient
+	llmProvider   LLMProvider
+	reviewService *ReviewService
 }
 
-func NewWrongQuestionService(wqRepo *repository.WrongQuestionRepository, noteRepo *repository.NoteRepository, minio *MinIOClient, llmProvider LLMProvider) *WrongQuestionService {
+func NewWrongQuestionService(wqRepo *repository.WrongQuestionRepository, noteRepo *repository.NoteRepository, minio *MinIOClient, llmProvider LLMProvider, reviewService *ReviewService) *WrongQuestionService {
 	return &WrongQuestionService{
-		wqRepo:      wqRepo,
-		noteRepo:    noteRepo,
-		minio:       minio,
-		llmProvider: llmProvider,
+		wqRepo:        wqRepo,
+		noteRepo:      noteRepo,
+		minio:         minio,
+		llmProvider:   llmProvider,
+		reviewService: reviewService,
 	}
 }
 
@@ -124,6 +126,13 @@ func (s *WrongQuestionService) Create(userID uint, req CreateWrongQuestionReques
 	if err := s.wqRepo.Create(wq); err != nil {
 		return nil, err
 	}
+
+	// Auto-create review plan for this wrong question
+	var noteID uint
+	if req.NoteID != nil {
+		noteID = *req.NoteID
+	}
+	s.reviewService.CreatePlanForWrongQuestion(userID, noteID, wq.ID)
 
 	dto := toWrongQuestionDTO(wq)
 	return &dto, nil
