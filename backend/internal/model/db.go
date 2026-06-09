@@ -16,7 +16,7 @@ func InitDB(dsn string) (*gorm.DB, error) {
 	// Enable pgvector extension before creating tables
 	db.Exec("CREATE EXTENSION IF NOT EXISTS vector")
 
-	if err := db.AutoMigrate(&User{}, &Course{}, &Note{}, &FileAttachment{}, &ExamPoint{}, &WrongQuestion{}, &ReviewPlan{}, &KnowledgeEntity{}, &KnowledgeRelation{}, &QAConversation{}); err != nil {
+	if err := db.AutoMigrate(&User{}, &Course{}, &Note{}, &FileAttachment{}, &ExamPoint{}, &WrongQuestion{}, &ReviewPlan{}, &KnowledgeEntity{}, &KnowledgeRelation{}, &QASession{}, &QAConversation{}); err != nil {
 		return nil, fmt.Errorf("migrate database: %w", err)
 	}
 

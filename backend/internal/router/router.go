@@ -119,7 +119,10 @@ func Setup(
 		qa := api.Group("/qa")
 		{
 			qa.POST("/ask", qaHandler.Ask)
-			qa.GET("/history", qaHandler.GetHistory)
+			qa.GET("/sessions", qaHandler.ListSessions)
+			qa.GET("/sessions/:id/messages", qaHandler.GetSessionMessages)
+			qa.PUT("/sessions/:id", qaHandler.RenameSession)
+			qa.DELETE("/sessions/:id", qaHandler.DeleteSession)
 		}
 	}
 
