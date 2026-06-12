@@ -87,16 +87,26 @@ type NoteWithScore struct {
 }
 
 // SearchByEmbedding searches notes by embedding similarity using pgvector
-func (r *NoteRepository) SearchByEmbedding(userID uint, embedding pgvector.Vector, limit int) ([]NoteWithScore, error) {
+func (r *NoteRepository) SearchByEmbedding(userID uint, embedding pgvector.Vector, courseID uint, limit int) ([]NoteWithScore, error) {
 	var results []NoteWithScore
-	rows, err := r.db.Raw(`
+
+	query := `
 		SELECT id, user_id, course_id, title, content, file_content, tags, is_exam_focus, created_at, updated_at,
 		       1 - (embedding <=> ?) AS score
 		FROM notes
 		WHERE user_id = ? AND embedding IS NOT NULL
-		ORDER BY embedding <=> ?
-		LIMIT ?
-	`, embedding, userID, embedding, limit).Rows()
+	`
+	args := []interface{}{embedding, userID}
+
+	if courseID > 0 {
+		query += " AND course_id = ?"
+		args = append(args, courseID)
+	}
+
+	query += " ORDER BY embedding <=> ? LIMIT ?"
+	args = append(args, embedding, limit)
+
+	rows, err := r.db.Raw(query, args...).Rows()
 	if err != nil {
 		return nil, err
 	}

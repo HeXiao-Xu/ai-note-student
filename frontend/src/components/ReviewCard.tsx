@@ -57,6 +57,14 @@ export default function ReviewCard({ item, onAnswer }: ReviewCardProps) {
           </button>
         ) : (
           <div className="animate-fade-in">
+            {item.answer && (
+              <div className="mb-4">
+                <div className="text-xs font-medium text-slate-500 mb-1.5">答案</div>
+                <div className="font-serif text-sm leading-[1.85] text-slate-700 whitespace-pre-wrap bg-emerald-50 border border-emerald-100 rounded-lg px-4 py-3">
+                  {item.answer}
+                </div>
+              </div>
+            )}
             <div className="text-xs font-medium text-slate-500 mb-2">你对这个内容的掌握程度：</div>
             <div className="flex flex-wrap gap-2">
               {qualityLabels.map((q) => (

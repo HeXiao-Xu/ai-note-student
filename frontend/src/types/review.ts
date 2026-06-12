@@ -5,6 +5,7 @@ export interface ReviewItem {
   note_id: number
   note_title: string
   content: string
+  answer?: string
   next_review_at: string
   interval_days: number
   review_count: number

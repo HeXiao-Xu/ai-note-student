@@ -97,12 +97,9 @@ func (s *QAService) Ask(userID uint, question string, courseID uint, sessionID u
 		s.generateMissingEmbeddings(userID)
 
 		// Step 2: Search for similar notes
-		noteResults, err := s.noteRepo.SearchByEmbedding(userID, queryVec, 5)
+		noteResults, err := s.noteRepo.SearchByEmbedding(userID, queryVec, courseID, 5)
 		if err == nil {
 			for _, nr := range noteResults {
-				if courseID > 0 && nr.CourseID != courseID {
-					continue
-				}
 				content := nr.Content
 				if content == "" {
 					content = nr.FileContent
@@ -117,12 +114,9 @@ func (s *QAService) Ask(userID uint, question string, courseID uint, sessionID u
 		}
 
 		// Step 3: Search for similar entities
-		entityResults, err := s.knowledgeRepo.SearchByEmbedding(userID, queryVec, 3)
+		entityResults, err := s.knowledgeRepo.SearchByEmbedding(userID, queryVec, courseID, 3)
 		if err == nil {
 			for _, er := range entityResults {
-				if courseID > 0 && er.CourseID != courseID {
-					continue
-				}
 				contextParts = append(contextParts, fmt.Sprintf("【知识: %s (%s)】\n%s", er.Name, er.Type, er.Description))
 				sourceEntities = append(sourceEntities, SourceEntity{
 					ID:   er.ID,

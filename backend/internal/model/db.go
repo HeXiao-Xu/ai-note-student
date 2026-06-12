@@ -29,6 +29,12 @@ func InitDB(dsn string) (*gorm.DB, error) {
 	db.Exec("CREATE INDEX IF NOT EXISTS idx_relations_target ON knowledge_relations (target_id)")
 
 	// Create HNSW indexes for vector similarity search
+	// Drop old indexes if they exist (may have wrong dimension vectors)
+	db.Exec("DROP INDEX IF EXISTS idx_notes_embedding")
+	db.Exec("DROP INDEX IF EXISTS idx_entities_embedding")
+	// Clear old embeddings that may have wrong dimensions (e.g. 2048 instead of 1024)
+	db.Exec("UPDATE notes SET embedding = NULL WHERE embedding IS NOT NULL AND vector_dims(embedding) != 1024")
+	db.Exec("UPDATE knowledge_entities SET embedding = NULL WHERE embedding IS NOT NULL AND vector_dims(embedding) != 1024")
 	db.Exec("CREATE INDEX IF NOT EXISTS idx_notes_embedding ON notes USING hnsw (embedding vector_cosine_ops)")
 	db.Exec("CREATE INDEX IF NOT EXISTS idx_entities_embedding ON knowledge_entities USING hnsw (embedding vector_cosine_ops)")
 

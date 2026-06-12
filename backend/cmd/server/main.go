@@ -55,7 +55,7 @@ func main() {
 	courseService := service.NewCourseService(courseRepo, noteRepo)
 	docConverter := service.NewDocumentConverter("")   // auto-detect LibreOffice
 	textExtractor := service.NewTextExtractor("")       // auto-detect pdftotext
-	noteService := service.NewNoteService(noteRepo, courseRepo, minioClient, docConverter, textExtractor)
+	noteService := service.NewNoteService(noteRepo, courseRepo, minioClient, docConverter, textExtractor, embeddingProvider)
 	fileService := service.NewFileService(fileRepo, noteRepo, minioClient)
 	reviewService := service.NewReviewService(reviewPlanRepo, examPointRepo, wqRepo, noteRepo)
 	examPointService := service.NewExamPointService(examPointRepo, noteRepo, courseRepo, llmProvider, reviewService)

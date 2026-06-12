@@ -279,7 +279,42 @@ export default function WrongQuestionsPage() {
                 )}
 
                 {currentQuestion.analysis && !analysisResult && (
-                  <div className="text-sm text-slate-600 whitespace-pre-wrap">{currentQuestion.analysis}</div>
+                  (() => {
+                    try {
+                      const parsed = JSON.parse(currentQuestion.analysis)
+                      return (
+                        <div className="space-y-3 animate-fade-in">
+                          {parsed.root_cause && (
+                            <div className="bg-slate-50 rounded-lg px-3 py-2.5">
+                              <div className="text-xs font-medium text-slate-600 mb-1">根本原因</div>
+                              <div className="text-sm text-slate-700">{parsed.root_cause}</div>
+                            </div>
+                          )}
+                          {parsed.knowledge_gaps?.length > 0 && (
+                            <div className="bg-amber-50/50 rounded-lg px-3 py-2.5">
+                              <div className="text-xs font-medium text-amber-600 mb-1">知识漏洞</div>
+                              <ul className="text-sm text-slate-700 space-y-1">
+                                {parsed.knowledge_gaps.map((gap: string, i: number) => (
+                                  <li key={i} className="flex items-start gap-1.5">
+                                    <span className="text-amber-500 mt-0.5">•</span>
+                                    {gap}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {parsed.suggestion && (
+                            <div className="bg-indigo-50/50 rounded-lg px-3 py-2.5">
+                              <div className="text-xs font-medium text-indigo-600 mb-1">改进建议</div>
+                              <div className="text-sm text-slate-700">{parsed.suggestion}</div>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    } catch {
+                      return <div className="text-sm text-slate-600 whitespace-pre-wrap">{currentQuestion.analysis}</div>
+                    }
+                  })()
                 )}
               </div>
             </div>

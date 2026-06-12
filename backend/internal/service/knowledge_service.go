@@ -357,7 +357,7 @@ func (s *KnowledgeService) GetRelatedEntities(userID uint, entityID uint) ([]Rel
 
 	// Add embedding-similarity related entities
 	if entity.Embedding != nil {
-		similar, err := s.knowledgeRepo.SearchByEmbedding(userID, *entity.Embedding, 5)
+		similar, err := s.knowledgeRepo.SearchByEmbedding(userID, *entity.Embedding, 0, 5)
 		if err == nil {
 			for _, e := range similar {
 				if seen[e.ID] {
@@ -413,8 +413,9 @@ func normalizeRelationType(t string) string {
 }
 
 func truncateContent(content string, maxLen int) string {
-	if len(content) <= maxLen {
+	runes := []rune(content)
+	if len(runes) <= maxLen {
 		return content
 	}
-	return content[:maxLen] + "..."
+	return string(runes[:maxLen]) + "..."
 }

@@ -39,6 +39,7 @@ type ReviewItemDTO struct {
 	NoteID       uint   `json:"note_id"`
 	NoteTitle    string `json:"note_title"`
 	Content      string `json:"content"`
+	Answer       string `json:"answer,omitempty"`
 	NextReviewAt string `json:"next_review_at"`
 	IntervalDays int    `json:"interval_days"`
 	ReviewCount  int    `json:"review_count"`
@@ -111,6 +112,7 @@ func (s *ReviewService) GetTodayReviews(userID uint) ([]ReviewItemDTO, error) {
 			wq, err := s.wqRepo.FindByID(plan.RefID)
 			if err == nil {
 				item.Content = wq.Question
+				item.Answer = wq.Answer
 				item.Mastery = wq.Mastery
 			}
 		}
@@ -143,6 +145,8 @@ func (s *ReviewService) AnswerReview(userID uint, planID uint, req AnswerReviewR
 	plan.ReviewCount = result.Repetition
 	plan.EaseFactor = result.EaseFactor
 	plan.NextReviewAt = time.Now().Add(time.Duration(result.Interval) * 24 * time.Hour)
+	now := time.Now()
+	plan.LastAnsweredAt = &now
 
 	if err := s.reviewRepo.Update(plan); err != nil {
 		return nil, err
@@ -188,6 +192,7 @@ func (s *ReviewService) GetReviewItem(plan *model.ReviewPlan) (*ReviewItemDTO, e
 		wq, err := s.wqRepo.FindByID(plan.RefID)
 		if err == nil {
 			item.Content = wq.Question
+			item.Answer = wq.Answer
 			item.Mastery = wq.Mastery
 		}
 	}
@@ -214,7 +219,7 @@ func (s *ReviewService) GetStats(userID uint) (*ReviewStatsDTO, error) {
 	recentCounts, _ := s.reviewRepo.FindRecentReviewCounts(userID, 30)
 	countMap := make(map[string]int)
 	for _, rc := range recentCounts {
-		countMap[rc.Date] = rc.Count
+		countMap[rc.Date.Format("2006-01-02")] = int(rc.Count)
 	}
 	now := time.Now()
 	for i := 0; i < 30; i++ {
@@ -289,7 +294,7 @@ func (s *ReviewService) GetDetailedStats(userID uint) (*DetailedStatsDTO, error)
 	countMap := make(map[string]int)
 	now := time.Now()
 	for _, rc := range recentCounts {
-		countMap[rc.Date] = rc.Count
+		countMap[rc.Date.Format("2006-01-02")] = int(rc.Count)
 	}
 	for i := 0; i < 30; i++ {
 		date := now.AddDate(0, 0, -i).Format("2006-01-02")

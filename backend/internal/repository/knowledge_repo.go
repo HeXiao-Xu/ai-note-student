@@ -153,16 +153,26 @@ type EntityWithScore struct {
 	Score float64
 }
 
-func (r *KnowledgeRepository) SearchByEmbedding(userID uint, embedding pgvector.Vector, limit int) ([]EntityWithScore, error) {
+func (r *KnowledgeRepository) SearchByEmbedding(userID uint, embedding pgvector.Vector, courseID uint, limit int) ([]EntityWithScore, error) {
 	var results []EntityWithScore
-	rows, err := r.db.Raw(`
+
+	query := `
 		SELECT id, user_id, course_id, name, type, description, note_ids, created_at, updated_at,
 		       1 - (embedding <=> ?) AS score
 		FROM knowledge_entities
 		WHERE user_id = ? AND embedding IS NOT NULL
-		ORDER BY embedding <=> ?
-		LIMIT ?
-	`, embedding, userID, embedding, limit).Rows()
+	`
+	args := []interface{}{embedding, userID}
+
+	if courseID > 0 {
+		query += " AND course_id = ?"
+		args = append(args, courseID)
+	}
+
+	query += " ORDER BY embedding <=> ? LIMIT ?"
+	args = append(args, embedding, limit)
+
+	rows, err := r.db.Raw(query, args...).Rows()
 	if err != nil {
 		return nil, err
 	}

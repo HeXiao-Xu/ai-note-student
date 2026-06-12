@@ -32,8 +32,9 @@ func NewZhipuEmbedding(cfg config.ZhipuConfig, embeddingModel string) *ZhipuEmbe
 }
 
 type embeddingRequest struct {
-	Model string   `json:"model"`
-	Input []string `json:"input"`
+	Model      string   `json:"model"`
+	Input      []string `json:"input"`
+	Dimensions int      `json:"dimensions,omitempty"`
 }
 
 type embeddingResponse struct {
@@ -51,8 +52,9 @@ type embeddingResponse struct {
 
 func (z *ZhipuEmbedding) Embed(ctx context.Context, texts []string) ([][]float32, error) {
 	reqBody := embeddingRequest{
-		Model: z.model,
-		Input: texts,
+		Model:      z.model,
+		Input:      texts,
+		Dimensions: z.EmbeddingDimension(),
 	}
 
 	jsonData, err := json.Marshal(reqBody)

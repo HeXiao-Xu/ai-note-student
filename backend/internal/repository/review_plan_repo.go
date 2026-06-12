@@ -66,15 +66,15 @@ func (r *ReviewPlanRepository) CountCompletedTodayByUserID(userID uint) (int64, 
 	today := time.Now().Truncate(24 * time.Hour)
 	tomorrow := today.Add(24 * time.Hour)
 	err := r.db.Model(&model.ReviewPlan{}).
-		Where("user_id = ? AND updated_at >= ? AND updated_at < ? AND review_count > 0", userID, today, tomorrow).
+		Where("user_id = ? AND last_answered_at >= ? AND last_answered_at < ?", userID, today, tomorrow).
 		Count(&count).Error
 	return count, err
 }
 
 // DailyCount holds a daily review count
 type DailyCount struct {
-	Date  string
-	Count int
+	Date  time.Time
+	Count int64
 }
 
 // FindRecentReviewCounts returns review counts for the last N days
@@ -83,9 +83,9 @@ func (r *ReviewPlanRepository) FindRecentReviewCounts(userID uint, days int) ([]
 
 	var results []DailyCount
 	err := r.db.Model(&model.ReviewPlan{}).
-		Select("DATE(updated_at) as date, count(*) as count").
-		Where("user_id = ? AND updated_at >= ? AND review_count > 0", userID, startDate).
-		Group("DATE(updated_at)").
+		Select("DATE(last_answered_at) as date, count(*) as count").
+		Where("user_id = ? AND last_answered_at >= ?", userID, startDate).
+		Group("DATE(last_answered_at)").
 		Find(&results).Error
 
 	return results, err

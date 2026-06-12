@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,15 +13,17 @@ import (
 	"github.com/ai-note-student/backend/internal/model"
 	"github.com/ai-note-student/backend/internal/repository"
 	"github.com/google/uuid"
+	"github.com/pgvector/pgvector-go"
 	"gorm.io/gorm"
 )
 
 type NoteService struct {
-	noteRepo      *repository.NoteRepository
-	courseRepo    *repository.CourseRepository
-	minio         *MinIOClient
-	docConverter  *DocumentConverter
-	textExtractor *TextExtractor
+	noteRepo          *repository.NoteRepository
+	courseRepo        *repository.CourseRepository
+	minio             *MinIOClient
+	docConverter      *DocumentConverter
+	textExtractor     *TextExtractor
+	embeddingProvider EmbeddingProvider
 }
 
 func NewNoteService(
@@ -29,13 +32,15 @@ func NewNoteService(
 	minio *MinIOClient,
 	docConverter *DocumentConverter,
 	textExtractor *TextExtractor,
+	embeddingProvider EmbeddingProvider,
 ) *NoteService {
 	return &NoteService{
-		noteRepo:      noteRepo,
-		courseRepo:    courseRepo,
-		minio:         minio,
-		docConverter:  docConverter,
-		textExtractor: textExtractor,
+		noteRepo:          noteRepo,
+		courseRepo:        courseRepo,
+		minio:             minio,
+		docConverter:      docConverter,
+		textExtractor:     textExtractor,
+		embeddingProvider: embeddingProvider,
 	}
 }
 
@@ -161,6 +166,9 @@ func (s *NoteService) ImportDocument(ctx context.Context, userID uint, courseID 
 		return nil, err
 	}
 
+	// Generate embedding for the imported document
+	s.generateEmbedding(context.Background(), note)
+
 	return note, nil
 }
 
@@ -205,6 +213,10 @@ func (s *NoteService) Create(userID uint, courseID uint, req CreateNoteRequest) 
 	if err := s.noteRepo.Create(note); err != nil {
 		return nil, err
 	}
+
+	// Generate embedding for the new note
+	s.generateEmbedding(context.Background(), note)
+
 	return note, nil
 }
 
@@ -247,6 +259,12 @@ func (s *NoteService) Update(userID uint, noteID uint, req UpdateNoteRequest) (*
 	if err := s.noteRepo.Update(note); err != nil {
 		return nil, err
 	}
+
+	// Regenerate embedding when content changes
+	if req.Content != nil || req.Title != "" {
+		s.generateEmbedding(context.Background(), note)
+	}
+
 	return note, nil
 }
 
@@ -304,4 +322,30 @@ func (s *NoteService) PreviewDocument(ctx context.Context, userID uint, noteID u
 		return nil, nil, fmt.Errorf("download from storage: %w", err)
 	}
 	return obj, note, nil
+}
+
+func (s *NoteService) generateEmbedding(ctx context.Context, note *model.Note) {
+	content := noteContent(note)
+	if content == "" {
+		return
+	}
+	text := note.Title + ": " + truncateContent(content, 500)
+	embeddings, err := s.embeddingProvider.Embed(ctx, []string{text})
+	if err != nil {
+		log.Printf("Failed to generate embedding for note %d: %v", note.ID, err)
+		return
+	}
+	if len(embeddings) > 0 {
+		vec := pgvector.NewVector(embeddings[0])
+		if err := s.noteRepo.UpdateEmbedding(note.ID, vec); err != nil {
+			log.Printf("Failed to save embedding for note %d: %v", note.ID, err)
+		}
+	}
+}
+
+func noteContent(note *model.Note) string {
+	if note.Content != "" {
+		return note.Content
+	}
+	return note.FileContent
 }

@@ -1,12 +1,9 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useReviewStore } from '../stores/reviewStore'
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const renderPieLabel = ({ name, percent }: any) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`
-
-const PIE_COLORS = ['#6366f1', '#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe', '#ede9fe']
+const MASTERY_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#6366f1']
 
 const masteryLabels: Record<string, string> = {
   '0': '完全不会',
@@ -116,14 +113,15 @@ export default function ReviewStatsPage() {
           <div className="bg-white border border-slate-200 rounded-xl p-5">
             <h3 className="text-sm font-semibold text-slate-700 mb-4">掌握度分布</h3>
             {masteryData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={240}>
                 <PieChart>
-                  <Pie data={masteryData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={renderPieLabel} labelLine={false} fontSize={11}>
+                  <Pie data={masteryData} dataKey="value" nameKey="name" cx="50%" cy="45%" outerRadius={70}>
                     {masteryData.map((_, i) => (
-                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                      <Cell key={i} fill={MASTERY_COLORS[i % MASTERY_COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip />
+                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '13px' }} />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
@@ -135,14 +133,15 @@ export default function ReviewStatsPage() {
           <div className="bg-white border border-slate-200 rounded-xl p-5">
             <h3 className="text-sm font-semibold text-slate-700 mb-4">错误类型分布</h3>
             {errorTypeData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={240}>
                 <PieChart>
-                  <Pie data={errorTypeData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={renderPieLabel} labelLine={false} fontSize={11}>
+                  <Pie data={errorTypeData} dataKey="value" nameKey="name" cx="50%" cy="45%" outerRadius={70}>
                     {errorTypeData.map((_, i) => (
                       <Cell key={i} fill={['#6366f1', '#8b5cf6', '#f59e0b', '#10b981', '#94a3b8'][i % 5]} />
                     ))}
                   </Pie>
                   <Tooltip />
+                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '13px' }} />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
@@ -157,14 +156,15 @@ export default function ReviewStatsPage() {
           <div className="bg-white border border-slate-200 rounded-xl p-5">
             <h3 className="text-sm font-semibold text-slate-700 mb-4">考点频率分布</h3>
             {frequencyData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={240}>
                 <PieChart>
-                  <Pie data={frequencyData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={renderPieLabel} labelLine={false} fontSize={11}>
+                  <Pie data={frequencyData} dataKey="value" nameKey="name" cx="50%" cy="45%" outerRadius={70}>
                     {frequencyData.map((_, i) => (
                       <Cell key={i} fill={['#ef4444', '#f59e0b', '#10b981'][i % 3]} />
                     ))}
                   </Pie>
                   <Tooltip />
+                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '13px' }} />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
@@ -175,12 +175,12 @@ export default function ReviewStatsPage() {
           {/* Recent 7 days review count */}
           <div className="bg-white border border-slate-200 rounded-xl p-5">
             <h3 className="text-sm font-semibold text-slate-700 mb-4">近7天复习量</h3>
-            {reviewHistoryData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
+            {reviewHistoryData.some(d => d.count > 0) ? (
+              <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={reviewHistoryData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="date" fontSize={11} tick={{ fill: '#94a3b8' }} />
-                  <YAxis fontSize={11} tick={{ fill: '#94a3b8' }} allowDecimals={false} />
+                  <XAxis dataKey="date" fontSize={12} tick={{ fill: '#64748b' }} />
+                  <YAxis fontSize={12} tick={{ fill: '#64748b' }} allowDecimals={false} />
                   <Tooltip />
                   <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} />
                 </BarChart>
