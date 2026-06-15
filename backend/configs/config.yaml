@@ -24,7 +24,7 @@ llm:
   provider: "zhipu"
   embedding_model: "embedding-3"
   zhipu:
-    api_key: "273addcec85d40858c4242aaa82c2561.9fVBQY7EBYkhWmQp"
+    api_key: ""
     model: "glm-4-flash"
   openai:
     api_key: ""
