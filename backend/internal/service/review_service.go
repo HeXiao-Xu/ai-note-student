@@ -11,23 +11,26 @@ import (
 )
 
 type ReviewService struct {
-	reviewRepo    *repository.ReviewPlanRepository
-	examPointRepo *repository.ExamPointRepository
-	wqRepo        *repository.WrongQuestionRepository
-	noteRepo      *repository.NoteRepository
+	reviewRepo        *repository.ReviewPlanRepository
+	reviewHistoryRepo *repository.ReviewHistoryRepository
+	examPointRepo     *repository.ExamPointRepository
+	wqRepo            *repository.WrongQuestionRepository
+	noteRepo          *repository.NoteRepository
 }
 
 func NewReviewService(
 	reviewRepo *repository.ReviewPlanRepository,
+	reviewHistoryRepo *repository.ReviewHistoryRepository,
 	examPointRepo *repository.ExamPointRepository,
 	wqRepo *repository.WrongQuestionRepository,
 	noteRepo *repository.NoteRepository,
 ) *ReviewService {
 	return &ReviewService{
-		reviewRepo:    reviewRepo,
-		examPointRepo: examPointRepo,
-		wqRepo:        wqRepo,
-		noteRepo:      noteRepo,
+		reviewRepo:        reviewRepo,
+		reviewHistoryRepo: reviewHistoryRepo,
+		examPointRepo:     examPointRepo,
+		wqRepo:            wqRepo,
+		noteRepo:          noteRepo,
 	}
 }
 
@@ -152,6 +155,16 @@ func (s *ReviewService) AnswerReview(userID uint, planID uint, req AnswerReviewR
 		return nil, err
 	}
 
+	// Record review history (immutable record for stats)
+	history := &model.ReviewHistory{
+		UserID:  userID,
+		PlanID:  planID,
+		RefType: plan.RefType,
+		RefID:   plan.RefID,
+		Quality: req.Quality,
+	}
+	s.reviewHistoryRepo.Create(history)
+
 	// Update mastery on the referenced item
 	switch plan.RefType {
 	case "wrong_question":
@@ -202,7 +215,7 @@ func (s *ReviewService) GetReviewItem(plan *model.ReviewPlan) (*ReviewItemDTO, e
 
 func (s *ReviewService) GetStats(userID uint) (*ReviewStatsDTO, error) {
 	dueToday, _ := s.reviewRepo.CountDueByUserID(userID)
-	completedToday, _ := s.reviewRepo.CountCompletedTodayByUserID(userID)
+	completedToday, _ := s.reviewHistoryRepo.CountCompletedToday(userID)
 	total, _ := s.reviewRepo.CountByUserID(userID)
 
 	// Calculate mastery distribution from wrong questions
@@ -216,7 +229,7 @@ func (s *ReviewService) GetStats(userID uint) (*ReviewStatsDTO, error) {
 
 	// Calculate streak (simplified: count consecutive days with reviews from today backwards)
 	streak := 0
-	recentCounts, _ := s.reviewRepo.FindRecentReviewCounts(userID, 30)
+	recentCounts, _ := s.reviewHistoryRepo.FindRecentCounts(userID, 30)
 	countMap := make(map[string]int)
 	for _, rc := range recentCounts {
 		countMap[rc.Date.Format("2006-01-02")] = int(rc.Count)
@@ -245,7 +258,7 @@ func (s *ReviewService) GetDetailedStats(userID uint) (*DetailedStatsDTO, error)
 
 	// Basic stats
 	dueToday, _ := s.reviewRepo.CountDueByUserID(userID)
-	completedToday, _ := s.reviewRepo.CountCompletedTodayByUserID(userID)
+	completedToday, _ := s.reviewHistoryRepo.CountCompletedToday(userID)
 	totalPlans, _ := s.reviewRepo.CountByUserID(userID)
 
 	stats.DueToday = int(dueToday)
@@ -288,9 +301,9 @@ func (s *ReviewService) GetDetailedStats(userID uint) (*DetailedStatsDTO, error)
 	stats.TotalExamPoints = totalEP
 	stats.FrequencyDistribution = freqDist
 
-	// Streak
+	// Streak and Recent 7 days - use review_history
 	streak := 0
-	recentCounts, _ := s.reviewRepo.FindRecentReviewCounts(userID, 30)
+	recentCounts, _ := s.reviewHistoryRepo.FindRecentCounts(userID, 30)
 	countMap := make(map[string]int)
 	now := time.Now()
 	for _, rc := range recentCounts {

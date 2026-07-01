@@ -15,16 +15,14 @@ type ExamPointService struct {
 	noteRepo      *repository.NoteRepository
 	courseRepo    *repository.CourseRepository
 	llmProvider   LLMProvider
-	reviewService *ReviewService
 }
 
-func NewExamPointService(examPointRepo *repository.ExamPointRepository, noteRepo *repository.NoteRepository, courseRepo *repository.CourseRepository, llmProvider LLMProvider, reviewService *ReviewService) *ExamPointService {
+func NewExamPointService(examPointRepo *repository.ExamPointRepository, noteRepo *repository.NoteRepository, courseRepo *repository.CourseRepository, llmProvider LLMProvider) *ExamPointService {
 	return &ExamPointService{
 		examPointRepo: examPointRepo,
 		noteRepo:      noteRepo,
 		courseRepo:    courseRepo,
 		llmProvider:   llmProvider,
-		reviewService: reviewService,
 	}
 }
 
@@ -151,10 +149,6 @@ func (s *ExamPointService) Analyze(ctx context.Context, userID uint, noteID uint
 			return nil, fmt.Errorf("failed to save exam points: %w", err)
 		}
 
-		// Auto-create review plans for each exam point
-		for _, ep := range points {
-			s.reviewService.CreatePlanForExamPoint(userID, noteID, ep.ID)
-		}
 	}
 
 	dtos := make([]ExamPointDTO, len(points))

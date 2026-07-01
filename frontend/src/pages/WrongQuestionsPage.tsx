@@ -152,7 +152,7 @@ export default function WrongQuestionsPage() {
       {/* Right panel: Detail / Form */}
       <div className="flex-1 overflow-y-auto bg-white">
         {showForm && !editingId ? (
-          <div className="max-w-xl mx-auto px-8 py-8 animate-fade-in">
+          <div className="px-8 py-8 animate-fade-in">
             <h3 className="text-base font-semibold text-slate-800 mb-4">添加错题</h3>
             <WrongQuestionForm
               onSubmit={handleCreate}
@@ -161,7 +161,7 @@ export default function WrongQuestionsPage() {
             />
           </div>
         ) : editingId && currentQuestion ? (
-          <div className="max-w-xl mx-auto px-8 py-8 animate-fade-in">
+          <div className="px-8 py-8 animate-fade-in">
             <h3 className="text-base font-semibold text-slate-800 mb-4">编辑错题</h3>
             <WrongQuestionForm
               initial={currentQuestion}
@@ -172,7 +172,7 @@ export default function WrongQuestionsPage() {
             />
           </div>
         ) : currentQuestion ? (
-          <div className="max-w-2xl mx-auto px-8 py-8 animate-fade-in">
+          <div className="px-8 py-8 animate-fade-in">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-2">
                 <span className={`text-xs px-2 py-0.5 rounded font-medium ${errorTypeColors[currentQuestion.error_type] || errorTypeColors['其他']}`}>

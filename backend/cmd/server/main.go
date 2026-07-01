@@ -57,8 +57,9 @@ func main() {
 	textExtractor := service.NewTextExtractor("")       // auto-detect pdftotext
 	noteService := service.NewNoteService(noteRepo, courseRepo, minioClient, docConverter, textExtractor, embeddingProvider)
 	fileService := service.NewFileService(fileRepo, noteRepo, minioClient)
-	reviewService := service.NewReviewService(reviewPlanRepo, examPointRepo, wqRepo, noteRepo)
-	examPointService := service.NewExamPointService(examPointRepo, noteRepo, courseRepo, llmProvider, reviewService)
+	reviewHistoryRepo := repository.NewReviewHistoryRepository(db)
+	reviewService := service.NewReviewService(reviewPlanRepo, reviewHistoryRepo, examPointRepo, wqRepo, noteRepo)
+	examPointService := service.NewExamPointService(examPointRepo, noteRepo, courseRepo, llmProvider)
 	noteAIService := service.NewNoteAIService(noteRepo, courseRepo, llmProvider)
 	wrongQuestionService := service.NewWrongQuestionService(wqRepo, noteRepo, minioClient, llmProvider, reviewService)
 	knowledgeService := service.NewKnowledgeService(knowledgeRepo, noteRepo, courseRepo, llmProvider, embeddingProvider)

@@ -41,14 +41,15 @@ const features = [
 
 export default function AuthLayout() {
   return (
-    <div className="min-h-screen flex bg-[#0a0a1a] relative overflow-hidden">
-      {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a1a] via-[#1a1a3a] to-[#0d0d2a]" />
+    <div className="min-h-screen flex relative overflow-hidden">
+      {/* Background image */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: 'url(/login-bg.jpg)' }}
+      />
 
-      {/* Decorative glow effects */}
-      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full bg-indigo-600/10 blur-[120px]" />
-      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] rounded-full bg-purple-600/10 blur-[100px]" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-blue-600/5 blur-[150px]" />
+      {/* Dark overlay for better text readability */}
+      <div className="absolute inset-0 bg-black/40" />
 
       {/* Left panel - Value proposition */}
       <div className="hidden lg:flex lg:w-[55%] relative z-10 flex-col justify-center px-16 xl:px-24">
@@ -63,8 +64,8 @@ export default function AuthLayout() {
         </div>
 
         {/* Main headline */}
-        <h1 className="text-4xl xl:text-5xl font-bold text-white leading-tight mb-4">
-          你的学习<span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">第二大脑</span>
+        <h1 className="text-4xl xl:text-5xl font-bold leading-tight mb-4 bg-gradient-to-r from-white via-purple-400 to-blue-400 bg-clip-text text-transparent">
+          你的第二大脑
         </h1>
         <p className="text-lg text-slate-400 mb-12 max-w-md">
           记录、理解、连接你的全部知识，让学习更高效

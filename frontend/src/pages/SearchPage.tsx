@@ -35,7 +35,7 @@ export default function SearchPage() {
   }
 
   return (
-    <div className="p-8 max-w-2xl mx-auto">
+    <div className="p-8">
       <div className="mb-6">
         <h1 className="text-xl font-bold text-slate-900">搜索笔记</h1>
         <p className="text-slate-400 text-sm mt-0.5">在所有课程中查找笔记</p>

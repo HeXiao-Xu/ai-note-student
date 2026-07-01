@@ -76,7 +76,7 @@ export default function ReviewStatsPage() {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="max-w-4xl mx-auto px-8 py-8">
+      <div className="px-8 py-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-xl font-bold text-slate-900">学习报告</h1>
           <Link

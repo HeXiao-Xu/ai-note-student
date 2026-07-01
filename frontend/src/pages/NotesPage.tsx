@@ -303,7 +303,7 @@ export default function NotesPage() {
       {/* Note detail / editor */}
       <div className="flex-1 overflow-y-auto bg-white">
         {showNewNote ? (
-          <div className="max-w-2xl mx-auto px-8 py-10 animate-fade-in">
+          <div className="px-8 py-10 animate-fade-in">
             <div className="mb-5">
               <label className="block text-xs font-medium text-slate-500 mb-1.5">所属课程</label>
               <select
@@ -346,7 +346,7 @@ export default function NotesPage() {
             </div>
           </div>
         ) : currentNote ? (
-          <div className="max-w-2xl mx-auto px-8 py-10 animate-fade-in">
+          <div className="px-8 py-10 animate-fade-in">
             {isEditing ? (
               <>
                 <input
